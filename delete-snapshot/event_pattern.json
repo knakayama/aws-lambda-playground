@@ -1,0 +1,13 @@
+{
+  "detail-type": [
+    "AWS Console Sign In via CloudTrail"
+  ],
+  "detail": {
+    "eventSource": [
+      "ec2.amazonaws.com"
+    ],
+    "eventName": [
+      "DeregisterImage"
+    ]
+  }
+}

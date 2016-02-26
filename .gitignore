@@ -1,0 +1,6 @@
+*.tfstate*
+.envrc
+.terraform
+certs
+terraform.out
+terraform.plan
