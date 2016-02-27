@@ -111,8 +111,8 @@ resource "aws_instance" "ec2" {
 }
 
 resource "aws_ami_from_instance" "temp" {
-    name               = "${var.name}"
-    source_instance_id = "${aws_instance.ec2.id}"
+  name               = "${var.name}"
+  source_instance_id = "${aws_instance.ec2.id}"
 }
 
 resource "aws_iam_role" "lambda" {
