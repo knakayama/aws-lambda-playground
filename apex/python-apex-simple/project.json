@@ -1,0 +1,9 @@
+
+{
+  "name": "python-apex",
+  "description": "python-apex-sample",
+  "memory": 128,
+  "timeout": 5,
+  "role": "arn:aws:iam::804256469719:role/apex_lambda_function_python",
+  "environment": {}
+}
