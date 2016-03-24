@@ -1,0 +1,9 @@
+
+{
+  "name": "lambda-to-slack",
+  "description": "lambda-to-slack",
+  "memory": 128,
+  "timeout": 5,
+  "role": "arn:aws:iam::804256469719:role/apex_lambda_function_slack",
+  "environment": {}
+}

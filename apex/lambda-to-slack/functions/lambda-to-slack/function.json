@@ -1,0 +1,4 @@
+{
+  "description": "lambda to slack with python",
+  "runtime": "python"
+}
