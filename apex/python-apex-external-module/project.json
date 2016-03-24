@@ -1,0 +1,9 @@
+
+{
+  "name": "python-external-module",
+  "description": "python-apex-external-module",
+  "memory": 128,
+  "timeout": 5,
+  "role": "arn:aws:iam::804256469719:role/apex_lambda_function_python_external_module",
+  "environment": {}
+}
