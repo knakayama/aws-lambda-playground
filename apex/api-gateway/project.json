@@ -1,0 +1,9 @@
+{
+  "name" : "api-gateway-sample",
+  "description" : "Api Gateway sample",
+  "role" : "YOUR_LAMBDA_ROLE_ARN",
+  "nameTemplate" : "{{.Function.Name}}",
+  "memory" : 128,
+  "timeout" : 5,
+  "runtime" : "python"
+}
