@@ -1,0 +1,13 @@
+{
+  "name": "modify-spot-fleet-request",
+  "description": "modify spot fleet request",
+  "nameTemplate": "{{.Function.Name}}",
+  "handler": "main.lambda_handler",
+  "memory": 128,
+  "timeout": 15,
+  "defaultEnvironment": "dev",
+  "runtime": "python",
+  "environment": {
+    "SpotFleetRequestId": "sfr-************************************"
+  }
+}
