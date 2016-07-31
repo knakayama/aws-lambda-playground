@@ -1,0 +1,12 @@
+{
+  "name": "dynamodb-simple",
+  "description": "dynamodb simple",
+  "nameTemplate": "{{.Function.Name}}",
+  "memory": 128,
+  "timeout": 5,
+  "runtime": "python",
+  "defaultEnvironment": "dev",
+  "environment": {
+    "TableName": "GameScores"
+  }
+}
