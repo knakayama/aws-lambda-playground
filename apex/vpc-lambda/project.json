@@ -1,0 +1,16 @@
+{
+  "name": "vpc-lambda",
+  "description": "vpc lambda",
+  "nameTemplate": "{{.Function.Name}}",
+  "memory": 128,
+  "timeout": 5,
+  "runtime": "python",
+  "defaultEnvironment": "dev",
+  "vpc": {
+    "securityGroups": ["sg-********"],
+    "subnets": ["subnet-********"]
+  },
+  "environment": {
+    "TopicArn": ""
+  }
+}
