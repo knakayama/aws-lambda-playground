@@ -1,0 +1,1 @@
+variable "table_name" {}
