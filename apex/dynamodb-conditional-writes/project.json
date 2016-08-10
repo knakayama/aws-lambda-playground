@@ -1,0 +1,12 @@
+{
+  "name": "dynamodb-conditional-writes",
+  "description": "dynamodb conditional writes",
+  "nameTemplate": "{{.Function.Name}}",
+  "memory": 128,
+  "timeout": 30,
+  "runtime": "python",
+  "defaultEnvironment": "dev",
+  "environment": {
+    "TableName": "TestTable"
+  }
+}
