@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>What is my ip</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script type="text/javascript">
+
+    $(document).ready(function() {
+
+        $('form#submit').submit(function(event) {
+            $('#lambda_ip_submit').prop('disabled', true);
+
+            // process the form
+            $.ajax({
+                type : 'GET',
+                url  : '/ip'
+            })
+            .done(function(data, textStatus, jqXHR) {
+                $('#lambda_ip_submit').prop('disabled', false);
+                if (data.error) {
+                    $('#url-group').addClass('has-error'); // add the error class to show red input
+                    $('#url-error').show().text(data.error); // add the actual error message under our input
+                } else {
+                    $('form#submit').hide();        // hide initial submit form
+                    $('form#result').show();        // and show the one used to display the results
+                    $('#lambda_ip').text(data.lambda_ip);
+                }
+            })
+            .fail(function(_, _, errorThrown) {
+                $('#lambda_ip_submit').prop('disabled', false);
+                $('#url-group').addClass('has-error'); // add the error class to show red input
+                $('#url-error').show().text("Server error: "+errorThrown); // add the actual error message under our input
+            });
+
+            // stop the form from submitting the normal way and refreshing the page
+            event.preventDefault();
+        });
+
+        $('form#result').submit(function(event) {
+            location.reload();
+        });
+
+    });
+    </script>
+</head>
+<body>
+<div class="col-sm-8 col-sm-offset-1">
+
+    <h1>What is my lambda ip</h1>
+    <br/>
+    <form id="submit">
+        <div id="url-group" class="form-group">
+            <div class="help-block" style="display: none" id="url-error"></div>
+        </div>
+        <button type="submit" class="btn btn-success" id="lambda_ip_submit">What is my lambda ip</button>
+
+    </form>
+    <form id="result" style="display: none">
+        <div class="alert alert-success">Your lambda ip is: <br/><span id="lambda_ip"></span></div>
+    </form>
+
+</div>
+</body>
+</html>

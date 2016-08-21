@@ -1,12 +1,12 @@
 
 {
-  "name": "What is my Lambda ip",
-  "description": "what-is-my-lambda-ip",
-  "role": "YOUR_LAMBDA_ROLE_ARN",
+  "name": "what-is-my-lambda-ip",
+  "description": "what is my lambda ip",
   "nameTemplate" : "{{.Function.Name}}",
   "memory": 128,
   "timeout": 5,
   "runtime": "python",
+  "defaultEnvironment": "prod",
   "hooks": {
     "deploy": "[[ -d requests ]] || pip install -r requirements.txt -t ./"
   }
