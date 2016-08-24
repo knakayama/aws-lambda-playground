@@ -62,5 +62,5 @@ resource "aws_lambda_permission" "lambda" {
   action        = "lambda:InvokeFunction"
   function_name = "${var.lambda_arn}"
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "arn:aws:execute-api:${var.aws_region}:${element(split(":", var.lambda_arn), 4)}:${aws_api_gateway_rest_api.api.id}/*/GET/ip2"
+  source_arn    = "arn:aws:execute-api:${var.aws_region}:${element(split(":", var.lambda_arn), 4)}:${aws_api_gateway_rest_api.api.id}/*/GET/ip"
 }
