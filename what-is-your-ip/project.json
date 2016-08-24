@@ -1,0 +1,9 @@
+{
+  "name": "what-is-your-ip",
+  "description": "what is your ip",
+  "nameTemplate" : "{{.Function.Name}}",
+  "memory": 128,
+  "timeout": 5,
+  "runtime": "python",
+  "defaultEnvironment": "prod"
+}
