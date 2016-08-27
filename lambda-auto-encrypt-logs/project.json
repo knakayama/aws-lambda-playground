@@ -1,0 +1,9 @@
+{
+  "name": "lambda-auto-encrypt-logs",
+  "description": "lambda auto encrypt logs",
+  "nameTemplate": "{{.Function.Name}}",
+  "memory": 128,
+  "timeout": 10,
+  "runtime": "python",
+  "defaultEnvironment": "dev"
+}

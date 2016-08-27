@@ -1,0 +1,2 @@
+infrastructure/modules/compute/keys/*
+!infrastructure/modules/compute/keys/.gitkeep
