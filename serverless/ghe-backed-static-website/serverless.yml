@@ -1,0 +1,38 @@
+service: ghe-backed-static-website
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: dev
+  region: ap-northeast-1
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:ListBucket
+      Resource:
+        Fn::Join:
+          - ""
+          -
+            - "arn:aws:s3:::"
+            - Ref: S3Bucket
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+      Resource:
+        Fn::Join:
+          - ""
+          -
+            - "arn:aws:s3:::"
+            - Ref: S3Bucket
+
+custom: ${file(env/${self:provider.stage}/variables.yml)}
+
+functions:
+  main:
+    handler: main.handler
+    # not work...bug?
+    #events:
+    #  - sns: ghe-push
+
+resources: ${file(env/${self:provider.stage}/resources/template.yml)}
