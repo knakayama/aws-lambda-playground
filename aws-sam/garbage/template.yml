@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion : 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Route53 Health Checker
+
+VPCID:
+  Description: VPC ID
+  Type: AWS::EC2::VPC::Id
+  Default: vpc-********
+
+Resources:
+  Route53HealthChecker:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python2.7
+      Policies:
+        - AmazonRoute53FullAccess
+        - PolicyName: Route53HealthCheckerSNSPublish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref AlarmNotificationTopic
+          PolicyName: Route53HealthCheckerDynamoDB
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:*
+                Resource: !Join [ "", [ !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccoundId}:table/", !Ref CheckTable ] ]
+      Timeout: 10
+      VPCConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref LambdaSubnet
+      Environment:
+        Variables:
+          Hostname: ftp.debian.org
+          Threshold: 3
+          InvokeCount: 5
+          TopicArn: !Ref AlarmNotificationTopic
+          TableName: !Ref CheckTable
+      Events:
+        Timer:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: test
+      VpcId: !Ref VPCID
+  LambdaSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPCID
+      CidrBlock: 172.16.103.0/24
+      AvailabilityZone: ap-northeast-1a
+
+  CheckTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: Threshold
+          AttributeType: N
+        - AttributeName: InvokeCount
+          AttributeType: N
+      KeySchema:
+        - AttributeName: Threshold
+          KeyType: HASH
+        - AttributeName: InvokeCount
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  BasicLambdaExecRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: LambdaSNSHelper
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  LambdaSNSHelper:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import cfnresponse
+          def handler(event, context):
+            sns_endpoints = event["ResourceProperties"]["SNSEndpoints"]
+            response_data = {}
+            response_data["SNSSubscriptions"] = [{"Endpoint": sns_endpoint, "Protocol": "email"} for sns_endpoint in sns_endpoints]
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+      Handler: index.handler
+      MemorySize: 128
+      Role: !GetAtt BasicLambdaExecRole.Arn
+      Runtime: python2.7
+      Timeout: 3
+  SNSTopicEndpoints:
+    Type: Custom::LambdaSNSHelper
+    Version: 1.0
+    Properties:
+      ServiceToken: !GetAtt LambdaSNSHelper.Arn
+      SNSEndpoints: [ hoge@gmail.com ]
+  AlarmNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription: !GetAtt SNSTopicEndpoints.SNSSubscriptions
