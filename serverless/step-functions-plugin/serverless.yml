@@ -1,0 +1,55 @@
+service: step-functions-plugin-test-1
+
+provider:
+  name: aws
+  runtime: python2.7
+  region: us-east-1
+  stage: dev
+
+plugins:
+  - serverless-step-functions
+
+functions:
+  hellofunc:
+    handler: handler.hello
+  choicefunc:
+    handler: choice.handler
+
+stepFunctions:
+  hellostepfunc:
+    Comment: "A Hello World example of the Amazon States Language using an AWS Lambda Function"
+    StartAt: HelloWorld
+    States:
+      HelloWorld:
+        Type: Task
+        Resource: hellofunc
+        End: true
+
+  choicestepfunc:
+    Comment: Choice Step Function
+    StartAt: FirstState
+    States:
+      FirstState:
+        Type: Task
+        Resource: choicefunc
+        Next: ChoiceState
+
+      ChoiceState:
+        Type: Choice
+        Choices:
+          - Variable: $.statusCode
+            NumericEquals: 200
+            Next: FirstMatchState
+        Default: DefaultState
+
+      FirstMatchState:
+        Type: Pass
+        Next: EndState
+
+      DefaultState:
+        Type: Fail
+        Cause: No Matches!
+
+      EndState:
+        Type: Pass
+        End: true
