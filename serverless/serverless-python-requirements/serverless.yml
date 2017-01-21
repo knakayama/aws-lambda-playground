@@ -1,0 +1,14 @@
+frameworkVersion: ">=1.5.0"
+
+service: test
+
+provider:
+  name: aws
+  runtime: python2.7
+
+plugins:
+  - serverless-python-requirements
+
+functions:
+  hello:
+    handler: handler.hello

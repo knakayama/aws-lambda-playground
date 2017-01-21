@@ -5,4 +5,4 @@ certs
 terraform.out
 terraform.plan
 .serverless
-node_modules
+node_modules/
