@@ -5,6 +5,7 @@ service: test
 provider:
   name: aws
   runtime: python2.7
+  cfLogs: true
 
 plugins:
   - serverless-python-requirements
