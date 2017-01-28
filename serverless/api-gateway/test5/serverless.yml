@@ -1,0 +1,49 @@
+service: aws-python-test5
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: ${opt:stage}
+  region: ap-northeast-1
+  cfLogs: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource:
+        - { Fn::Join: [ ":", [ "arn:aws:dynamodb", "${self:provider.region}", Ref: "AWS::AccountId", "*" ] ] }
+
+functions:
+  create:
+    handler: src/handlers/posts.create
+    environment:
+      TableName:
+        Ref: myDynamoDBTable
+    events:
+      - http:
+          path: posts/create
+          method: post
+          integration: lambda
+          request:
+            parameters:
+              querystrings:
+                user_id: true
+                user_name: true
+  detail:
+    handler: src/handlers/posts.detail
+    environment:
+      TableName:
+        Ref: myDynamoDBTable
+    events:
+      - http:
+          path: posts/{user_id}
+          method: get
+          integration: lambda
+          request:
+            parameters:
+              paths:
+                user_id: true
+              querystrings:
+                user_name: true
+
+resources: ${file(resources.yml)}
