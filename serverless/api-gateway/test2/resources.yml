@@ -1,0 +1,17 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Test2
+
+Resources:
+  myDynamoDBTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: User
+          AttributeType: N
+      KeySchema:
+        - AttributeName: User
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
