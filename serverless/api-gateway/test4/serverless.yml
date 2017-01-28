@@ -1,0 +1,29 @@
+service: aws-python-test4
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: ${opt:stage}
+  region: ap-northeast-1
+  cfLogs: true
+
+functions:
+  create:
+    handler: src/handlers/posts.create
+    environment:
+      TableName:
+        Ref: myDynamoDBTable
+    role: LambdaDynamoDBPutItemRole
+    events:
+      - http:
+          path: posts/create
+          method: post
+          authorizer:
+            name: authorizerFunc
+            resultTtlInSeconds: 300 # defualt 300
+            identitySource: method.request.header.Authorization
+            #identityValidationExpression: someRegex
+  authorizerFunc:
+    handler: src/handlers/handlers.authorizerFunc
+
+resources: ${file(resources.yml)}

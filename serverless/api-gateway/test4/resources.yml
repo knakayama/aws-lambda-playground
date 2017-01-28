@@ -1,0 +1,63 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Test2
+
+Resources:
+  # not needed
+  #ApiGatewayInvokeLambdaRole:
+  #  Type: AWS::IAM::Role
+  #  Properties:
+  #    AssumeRolePolicyDocument:
+  #      Version: "2012-10-17"
+  #      Statement:
+  #        - Sid: ApiGatewayAssumeRole
+  #          Effect: Allow
+  #          Principal:
+  #            Service: apigateway.amazonaws.com
+  #          Action: sts:AssumeRole
+  #    Path: /
+  #    Policies:
+  #      - PolicyName: InvokeLambda
+  #        PolicyDocument:
+  #          Version: "2012-10-17"
+  #          Statement:
+  #            - Effect: Allow
+  #              Action:
+  #                - lambda:InvokeFunction
+  #              Resource: "*"
+  LambdaDynamoDBPutItemRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: LambdaAssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBPutItem
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource:
+                  - { Fn::Join: [ ":", [ "arn:aws:dynamodb", "${self:provider.region}", Ref: "AWS::AccountId", "*" ] ] }
+  myDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: User
+          AttributeType: N
+      KeySchema:
+        - AttributeName: User
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
