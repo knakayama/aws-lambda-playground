@@ -1,0 +1,14 @@
+service: aws-python-test1
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: ${opt:stage}
+  region: ap-northeast-1
+  cfLogs: true
+
+functions:
+  index:
+    handler: handler.hello
+    events:
+      - http: GET hello
