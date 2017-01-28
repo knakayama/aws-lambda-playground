@@ -1,0 +1,17 @@
+service: aws-python-test3
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: ${opt:stage}
+  region: ap-northeast-1
+  cfLogs: true
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: hello
+          method: get
+          cors: true
