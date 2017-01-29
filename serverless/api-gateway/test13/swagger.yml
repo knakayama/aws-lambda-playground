@@ -1,0 +1,13 @@
+---
+swagger: 2.0
+info:
+  version: 2017-01-29T08:53:06Z
+  title: dev-aws-python-test13
+#host: "9hjunhgvkk.execute-api.ap-northeast-1.amazonaws.com"
+basePath: /dev
+schemes:
+- https
+paths:
+  /hello:
+    get:
+      responses: {}
