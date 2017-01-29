@@ -14,19 +14,22 @@ Resources:
         #       in Lambda integration URI in the swagger file to region and accountId
         #       you are deploying to
         LambdaFunctionName: !Ref LambdaFunction
+        # not work
+        AWSAccountId: !Ref AWS::AccountId
+        AWSRegion: !Ref AWS::Region
 
   LambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/handlers/handler.hello
       Runtime: python2.7
-      #Events:
-      #  ProxyApiRoot:
-      #    Type: Api
-      #    Properties:
-      #      RestApiId: !Ref ApiGatewayApi
-      #      Path: /
-      #      Method: ANY
+      Events:
+        ProxyApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /hello
+            Method: GET
       #  ProxyApiGreedy:
       #    Type: Api
       #    Properties:

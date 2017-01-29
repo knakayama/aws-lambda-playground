@@ -3,17 +3,15 @@ swagger: 2.0
 info:
   version: 2017-01-29T07:07:09Z
   title: dev-aws-sam-test1
-#host: yujgo7t5aa.execute-api.ap-northeast-1.amazonaws.com
 basePath: /dev
 schemes:
-- https
+  - https
 paths:
   /hello:
     get:
       responses: {}
       x-amazon-apigateway-integration:
-        #uri: arn:aws:apigateway:ap-northeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-1:<aws-accoundid>:function:aws-python-test1-dev-index/invocations
-        uri: arn:aws:apigateway:ap-northeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-1:<aws-accoundid>:function:test-sam-LambdaFunction-1SYZT1U7J6R5R/invocations
+        uri: arn:aws:apigateway:<region>:lambda:path/2015-03-31/functions/arn:aws:lambda:<region>:<accountid>:function:${stageVariables.LambdaFunctionName}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
