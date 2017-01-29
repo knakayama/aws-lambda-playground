@@ -1,0 +1,31 @@
+service: aws-python-test11
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: ${opt:stage}
+  region: ap-northeast-1
+  cfLogs: true
+
+functions:
+  index:
+    handler: src/handlers/handler.hello
+    events:
+      - http:
+          method: get
+          path: whatever
+          integration: lambda
+          response:
+            headers:
+              Content-Type: "'text/html'"
+            template: $input.path('$')
+            statusCodes:
+                201:
+                    pattern: '' # Default response method
+                409:
+                    pattern: '.*"statusCode":409,.*' # JSON response
+                    template:
+                      application/json: $input.path("$.errorMessage") # JSON return object
+                      application/xml: $input.path("$.body.errorMessage") # XML return object
+                    headers:
+                      Content-Type: "'application/json+hal'"
