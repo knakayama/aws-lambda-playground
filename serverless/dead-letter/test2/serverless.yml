@@ -1,0 +1,39 @@
+service: lambda-dlq-sns-test
+
+custom:
+  sns: LambdaDLQSNSTest
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: dev
+  region: ap-northeast-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource:
+        - Ref: ${self:custom.sns}
+
+plugins:
+  - serverless-plugin-lambda-dead-letter
+
+functions:
+  fail:
+    handler: handler.fail
+    deadLetter:
+      targetArn:
+        GetResourceArn: ${self:custom.sns}
+    events:
+      - schedule: rate(1 minute)
+  invoked:
+    handler: handler.invoked
+    events:
+      - sns: arn:aws:sns:${self:provider.region}:${opt:account}:${self:custom.sns}
+
+resources:
+  Resources:
+    LambdaDLQSNSTest:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:custom.sns}
