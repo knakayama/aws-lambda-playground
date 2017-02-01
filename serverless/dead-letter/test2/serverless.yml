@@ -1,3 +1,5 @@
+frameworkVersion: ">=1.6.0"
+
 service: lambda-dlq-sns-test
 
 custom:
