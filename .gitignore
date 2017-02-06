@@ -6,3 +6,4 @@ terraform.out
 terraform.plan
 .serverless
 node_modules/
+*.pyc
