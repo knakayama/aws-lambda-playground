@@ -1,0 +1,19 @@
+service: aws-python
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: dev
+  region: ap-northeast-1
+
+plugins:
+  - serverless-scriptable-plugin
+
+custom:
+  scriptHooks:
+    #before:deploy:createDeploymentArtifacts: date
+    before:deploy:createDeploymentArtifacts: bin/test.sh
+
+functions:
+  hello:
+    handler: handler.hello
