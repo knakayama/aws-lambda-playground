@@ -1,0 +1,44 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Step Functions Test
+
+Resources:
+  InvokeLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: StepFunctionsAssumeRolePolicy
+            Effect: Allow
+            Principal:
+              Service:
+                Fn::Join: [ ".", [ states, Ref: "AWS::Region", amazonaws, com ] ]
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+  TestStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn:
+        Fn::GetAtt: [ InvokeLambdaRole, Arn ]
+      DefinitionString: |-
+        {
+          "StartAt": "HelloWorld",
+          "States": {
+            "HelloWorld": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${self:provider.region}:${self:custom.config.accountId}:function:${self:service}-${opt:stage}-hello",
+              "End": true
+            }
+          }
+        }
+
+Outputs:
+  StateMachineArn:
+    Value:
+      Ref: TestStateMachine
+  StateMachineName:
+    Value:
+      Fn::GetAtt: [ TestStateMachine, Name ]
