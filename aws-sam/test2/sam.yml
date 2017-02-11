@@ -1,0 +1,28 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless Application Model Test
+
+Parameters:
+  Timezone:
+    Description: Timezone
+    Type: String
+    Default: Asia/Tokyo
+    AllowedPattern: "[a-zA-Z]*/[a-zA-Z]*"
+    ConstraintDescription: Must be "[a-zA-Z]*/[a-zA-Z]*" format
+
+Resources:
+  Pytz:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/pure-python/handler.hello
+      Runtime: python2.7
+      Environment:
+        Variables:
+          Timezone: !Ref Timezone
+
+Outputs:
+  PytzLambdaFunctionName:
+    Value: !Ref Pytz
+  PytzLambdaFunctionArn:
+    Value: !GetAtt Pytz.Arn
