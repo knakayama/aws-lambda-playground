@@ -1,0 +1,26 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless Application Model Test
+
+Resources:
+  Func1:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/func1/handler.hello
+      Runtime: python2.7
+  Func2:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/func2/handler.hello
+      Runtime: python2.7
+
+Outputs:
+  Func1Name:
+    Value: !Ref Func1
+  Func1Arn:
+    Value: !GetAtt Func1.Arn
+  Func2Name:
+    Value: !Ref Func2
+  Func2Arn:
+    Value: !GetAtt Func2.Arn
