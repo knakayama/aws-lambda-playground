@@ -7,3 +7,6 @@ terraform.plan
 .serverless
 node_modules/
 *.pyc
+.sam/
+vendored/
+tmp/
