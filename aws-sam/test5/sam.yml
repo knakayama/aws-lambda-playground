@@ -1,0 +1,42 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Based on https://github.com/awslabs/serverless-application-model/blob/master/examples/2016-10-31/api_swagger_cors/template.yaml
+
+Parameters:
+  Stage:
+    Type: String
+
+Resources:
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionUri: src/api/swagger.Stage.yml
+      StageName: !Ref Stage
+      Variables:
+        LambdaFunctionName: !Ref Func1
+
+  Func1:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func1
+      Handler: index.handler
+      Runtime: nodejs4.3
+      Events:
+        ProxyApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /
+            Method: ANY
+        ProxyApiGreedy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: URL of your API endpoint
+    Value: !Sub https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
