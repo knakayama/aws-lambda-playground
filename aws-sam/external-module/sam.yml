@@ -1,0 +1,16 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: External Module
+
+Resources:
+  Func:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/handler
+      Handler: handler.hello
+      Runtime: python2.7
+
+Outputs:
+  FuncName:
+    Value: !Ref Func
