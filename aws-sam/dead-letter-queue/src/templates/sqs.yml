@@ -1,0 +1,11 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: SQS
+
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+
+Outputs:
+  QueueArn:
+    Value: !GetAtt Queue.Arn

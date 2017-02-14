@@ -1,0 +1,57 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: AWS SAM
+
+Resources:
+  SQS:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/sqs.yml
+  SNS:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/sns.yml
+
+  Failure:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/failure
+      Handler: index.handler
+      Runtime: python2.7
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Sid: SQSSendMessagePolicy
+              Effect: Allow
+              Action: sqs:SendMessage
+              Resource: !GetAtt SQS.Outputs.QueueArn
+            - Sid: SNSPublishPolicy
+              Effect: Allow
+              Action: sns:Publish
+              Resource: !GetAtt SNS.Outputs.TopicArn
+      Events:
+        Timer:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+  DeadLetterQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/custom.yml
+      Parameters:
+        FunctionName: !Ref Failure
+        QueueArn: !GetAtt SQS.Outputs.QueueArn
+        TopicArn: !GetAtt SNS.Outputs.TopicArn
+
+  Invoked:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/invoked
+      Handler: index.handler
+      Runtime: python2.7
+      Events:
+        Invoker:
+          Type: SNS
+          Properties:
+            Topic: !GetAtt SNS.Outputs.TopicArn
