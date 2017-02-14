@@ -1,0 +1,44 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Nested Stack
+
+Parameters:
+  FuncArn:
+    Type: String
+
+Resources:
+  InvokeLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: StepFunctionsAssumeRolePolicy
+            Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+  StateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt InvokeLambdaRole.Arn
+      DefinitionString: !Sub |-
+        {
+          "StartAt": "HelloWorld",
+          "States": {
+            "HelloWorld": {
+              "Type": "Task",
+              "Resource": "${FuncArn}",
+              "End": true
+            }
+          }
+        }
+
+Outputs:
+  StateMachineArn:
+    Value: !Ref StateMachine
+  StateMachineName:
+    Value: !GetAtt StateMachine.Name
