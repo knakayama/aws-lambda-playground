@@ -1,0 +1,145 @@
+---
+swagger: 2.0
+info:
+  title: aws-sam-sample-dev
+  description: aws-sam-sample
+  version: 1.0.0
+schemas:
+  - https
+basePath: /dev
+
+paths:
+  /user:
+    get:
+      summary: Get User
+      description: |
+        Get User.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: id
+          in: query
+          description: User Id
+          required: true
+          type: number
+          format: integer
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/ObjectOfUser"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri: arn:aws:apigateway:ap-northeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-1:************:function:${stageVariables.UserLambdaName}/invocations
+        passthroughBehavior: when_no_templates
+        httpMethod: POST
+        type: aws
+        requestTemplates:
+          application/json: |
+            {
+              #foreach($key in $input.params().querystring.keySet())
+              "$key": "$util.escapeJavaScript($input.params().querystring.get($key))" #if($foreach.hasNext),#end
+              #end
+            }
+
+  /create:
+    post:
+      summary: Create User
+      description: |
+        Create User.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: user
+          in: query
+          description: User Name
+          required: true
+          type: string
+        - name: password
+          in: query
+          description: Password
+          required: true
+          type: string
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri: arn:aws:apigateway:ap-northeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-1:************:function:${stageVariables.CreateLambdaName}/invocations
+        httpMethod: POST
+        type: aws
+        passthroughBehavior: when_no_templates
+        httpMethod: POST
+        type: aws
+        requestTemplates:
+          application/json: |
+            {
+              #foreach($key in $input.params().querystring.keySet())
+              "$key": "$util.escapeJavaScript($input.params().querystring.get($key))" #if($foreach.hasNext),#end
+              #end
+            }
+
+  /delete:
+    post:
+      summary: User
+      description: |
+        Create User.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: id
+          in: query
+          description: User Name
+          required: true
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri: arn:aws:apigateway:ap-northeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-1:************:function:${stageVariables.DeleteLambdaName}/invocations
+        httpMethod: POST
+        type: aws
+        passthroughBehavior: when_no_templates
+        httpMethod: POST
+        type: aws
+        requestTemplates:
+          application/json: |
+            {
+              #foreach($key in $input.params().querystring.keySet())
+              "$key": "$util.escapeJavaScript($input.params().querystring.get($key))" #if($foreach.hasNext),#end
+              #end
+            }
+
+definitions:
+  Empty:
+    type: object
+    title: Empty Schema
+  ObjectOfUser:
+    title: ObjectOfUser Schema
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int32
+      email:
+        type: string
+      password:
+        type: string

@@ -1,0 +1,157 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: aws-sam-sample
+
+Parameters:
+  Env:
+    Type: String
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  RDSEndpointAddress:
+    Type: String
+  RDSUser:
+    Type: String
+  RDSPassword:
+    Type: String
+  RDSDB:
+    Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Configuration
+        Parameters:
+          - Env
+      - Label:
+          default: Lambda Configuration
+        Parameters:
+          - SecurityGroupIds
+          - SubnetIds
+          - RDSEndpointAddress
+          - RDSUser
+          - RDSPassword
+          - RDSDB
+    ParameterLabels:
+      Env:
+        default: Environment name for this stack
+      SecurityGroupIds:
+        default: Security Group ids to be associated with Lambda function(s)
+      SubnetIds:
+        default: Subnet ids associated to be associated with Lambda function(s)
+      RDSEndpointAddress:
+        default: RDS endpoint address for Lambda function(s)
+      RDSUser:
+        default: RDS user name for Lambda function(s)
+      RDSPassword:
+        default: RDS password for Lambda function(s)
+      RDSDB:
+        default: RDS db name for Lambda function(s)
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Env
+      # TODO: DefinitionUri: !Sub src/api/swagger.${Env}.yml not work
+      # https://github.com/aws/aws-cli/pull/2451
+      #DefinitionUri: src/api/swagger.dev.yml
+      DefinitionUri: src/api/swagger.dev.yml
+      Variables:
+        CreateLambdaName: !Ref Create
+        UserLambdaName: !Ref User
+        DeleteLambdaName: !Ref Delete
+
+  Create:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub create-${Env}
+      Description: !Sub create-${Env}
+      CodeUri: src/handlers/create
+      Handler: index.create
+      Runtime: python2.7
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      VpcConfig:
+        SecurityGroupIds: !Ref SecurityGroupIds
+        SubnetIds: !Ref SubnetIds
+      Environment:
+        Variables:
+          RDSEndpointAddress: !Ref RDSEndpointAddress
+          RDSUser: !Ref RDSUser
+          RDSPassword: !Ref RDSPassword
+          RDSDB: !Ref RDSDB
+      Events:
+        PostApi:
+          Type: Api
+          Properties:
+            Path: /create
+            Method: POST
+            RestApiId: !Ref Api
+
+  User:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub user-${Env}
+      Description: !Sub user-${Env}
+      CodeUri: src/handlers/user
+      Handler: index.user
+      Runtime: python2.7
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      VpcConfig:
+        SecurityGroupIds: !Ref SecurityGroupIds
+        SubnetIds: !Ref SubnetIds
+      Environment:
+        Variables:
+          RDSEndpointAddress: !Ref RDSEndpointAddress
+          RDSUser: !Ref RDSUser
+          RDSPassword: !Ref RDSPassword
+          RDSDB: !Ref RDSDB
+      Events:
+        GetApi:
+          Type: Api
+          Properties:
+            Path: /user
+            Method: GET
+            RestApiId: !Ref Api
+
+  Delete:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub delete-${Env}
+      Description: !Sub delete-${Env}
+      CodeUri: src/handlers/delete
+      Handler: index.delete
+      Runtime: python2.7
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      VpcConfig:
+        SecurityGroupIds: !Ref SecurityGroupIds
+        SubnetIds: !Ref SubnetIds
+      Environment:
+        Variables:
+          RDSEndpointAddress: !Ref RDSEndpointAddress
+          RDSUser: !Ref RDSUser
+          RDSPassword: !Ref RDSPassword
+          RDSDB: !Ref RDSDB
+      Events:
+        GetApi:
+          Type: Api
+          Properties:
+            Path: /delete
+            Method: POST
+            RestApiId: !Ref Api
+Outputs:
+  ApiUrl:
+    Description: URL of your API endpoint
+    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${Env}
