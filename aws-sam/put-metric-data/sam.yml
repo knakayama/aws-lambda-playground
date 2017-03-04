@@ -1,0 +1,24 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: CloudWatch PutMetricData
+
+Resources:
+  Func1:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func1
+      Handler: index.handler
+      Runtime: python2.7
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Sid: CloudWatchPutMetricData
+              Effect: Allow
+              Action: cloudwatch:putMetricData
+              Resource: "*"
+      Events:
+        Timer:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
