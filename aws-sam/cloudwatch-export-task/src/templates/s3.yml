@@ -1,0 +1,30 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: S3
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetBucketAcl
+            Resource: !Sub arn:aws:s3:::${S3Bucket}
+            Principal:
+              Service: !Sub logs.${AWS::Region}.amazonaws.com
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: !Sub arn:aws:s3:::${S3Bucket}/*
+            Principal:
+              Service: !Sub logs.${AWS::Region}.amazonaws.com
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+
+Outputs:
+  S3BucketName:
+    Value: !Ref S3Bucket
