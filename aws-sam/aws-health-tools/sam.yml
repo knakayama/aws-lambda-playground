@@ -1,0 +1,64 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Automatically delete unused ENIs that are blocking ELB scaling using Amazon Cloudwatch events and AWS Lambda
+
+Parameters:
+  DryRun:
+    Type: String
+    Description: Set to true to test function without actually deleting ENIs
+    Default: true
+    AllowedValues: [ true, false ]
+  MaxENI:
+    Description: Number of ENIs to process. Set to 0 to do all the function finds (this may result in account throttling)
+    Type: Number
+    Default: 100
+
+Metadata:
+  LICENSE: https://github.com/aws/aws-health-tools
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Configuration
+        Parameters:
+          - DryRun
+          - MaxENI
+    ParameterLabels:
+      DryRun:
+        default: Dry Run
+      MaxENI:
+        default: Maximum ENI to process
+
+Resources:
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Delete unused ENIs in response to AWS health events
+      CodeUri: src/handlers/handler
+      Handler: LambdaFunction.handler
+      Runtime: nodejs4.3
+      Timeout: 120
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Sid: ENI
+              Effect: Allow
+              Action:
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DeleteNetworkInterface
+              Resource: "*"
+      Environment:
+        Variables:
+          DRY_RUN: !Ref DryRun
+          MAX_ENI: !Ref MaxENI
+      Events:
+        AWSHealth:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              source: [ aws.health ]
+              detail-type: [ "AWS Health Event" ]
+              detail:
+                service: [ ELASTICLOADBALANCING ]
+                eventTypeCategory: [ issue ]
+                eventTypeCode: [ AWS_ELASTICLOADBALANCING_ENI_LIMIT_REACHED ]
