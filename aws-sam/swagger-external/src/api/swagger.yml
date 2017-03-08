@@ -1,0 +1,55 @@
+---
+swagger: 2.0
+info:
+  title: swagger-external-${stageVariables.Env}
+  description: swagger-external-${stageVariables.Env}
+  version: 1.0.0
+schemes:
+  - https
+basePath: /${stageVariables.Env}
+paths:
+  /:
+    get:
+      summary: Root
+      description: |
+        Root Method.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: number
+          in: query
+          description: Some number
+          required: true
+          type: number
+          format: integer
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri: arn:aws:apigateway:ap-northeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-1:************:function:${stageVariables.FuncName}/invocations
+        #not work
+        #uri: arn:aws:apigateway:${stageVariables.AWSRegion}:lambda:path/2015-03-31/functions/arn:aws:lambda:${stageVariables.AWSRegion}:${stageVariables.AWSAccountId}:function:${stageVariables.FuncName}/invocations
+        #not work
+        #uri: arn:aws:apigateway:ap-northeast-1:lambda:path/2015-03-31/functions/${stageVariables.FuncArn}/invocations
+        passthroughBehavior: when_no_templates
+        httpMethod: POST
+        type: aws
+        requestTemplates:
+          application/json: |
+            {
+              #foreach($key in $input.params().querystring.keySet())
+              "$key": "$util.escapeJavaScript($input.params().querystring.get($key))" #if($foreach.hasNext),#end
+              #end
+            }
+
+definitions:
+  Empty:
+    type: object
+    title: Empty Schema
