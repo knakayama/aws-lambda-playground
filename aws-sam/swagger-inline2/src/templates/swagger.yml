@@ -1,0 +1,85 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: swagger
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+  FuncArn:
+    Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Configuration
+        Parameters:
+          - Env
+          - FuncArn
+    ParameterLabels:
+      Env:
+        default: Env
+      FuncArn:
+        default: Function Arn
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Env
+      DefinitionBody:
+        swagger: 2.0
+        info:
+          title: !Sub swagger-internal-${Env}
+          description: !Sub swagger-internal-${Env}
+          version: 1.0.0
+        schemes:
+          - https
+        basePath: !Sub /${Env}
+        paths:
+          /:
+            get:
+              summary: Root
+              description: |
+                Root Method.
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              parameters:
+                - name: number
+                  in: query
+                  description: Some number
+                  required: true
+                  type: number
+                  format: integer
+              responses:
+                "200":
+                  description: 200 response
+                  schema:
+                    $ref: "#/definitions/Empty"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: 200
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FuncArn}/invocations
+                passthroughBehavior: when_no_templates
+                httpMethod: POST
+                type: aws
+                requestTemplates:
+                  application/json: |
+                    {
+                      #foreach($key in $input.params().querystring.keySet())
+                      "$key": "$util.escapeJavaScript($input.params().querystring.get($key))" #if($foreach.hasNext),#end
+                      #end
+                    }
+        definitions:
+          Empty:
+            type: object
+            title: Empty Schema
+
+Outputs:
+  Name:
+    Value: !Ref Api
