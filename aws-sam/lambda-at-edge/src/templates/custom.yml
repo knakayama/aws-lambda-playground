@@ -1,0 +1,99 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Associate CloudFront with Lambda Function
+
+Parameters:
+  FunctionArn:
+    Type: String
+  CFDistributionId:
+    Type: String
+  EventType:
+    Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Configuration
+        Parameters:
+          - FunctionArn
+          - CFDistributionId
+          - EventType
+    ParameterLabels:
+      FunctionArn:
+        default: Function Arn
+      CFDistributionId:
+        default: CloudFront Distribution Id
+      EventType:
+        default: Event Type
+
+Resources:
+  LambdaCustomExecRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: LambdaAssumeRolePolicy
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: CustomLambdaPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: UpdateDistributionPolicy
+                Effect: Allow
+                Action:
+                  - cloudfront:UpdateDistribution
+                Resource: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CFDistributionId}
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/CloudFrontReadOnlyAccess
+  AssociateCFWithLambdaAtEdge:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          from datetime import datetime
+          import cfnresponse
+          import boto3
+          import json
+          def handler(event, context):
+              if event['RequestType'] == 'Delete':
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              func_arn = event['ResourceProperties']['FunctionArn']
+              cf_dist_id = event['ResourceProperties']['CFDistributionId']
+              event_type = event['ResourceProperties']['EventType']
+              cf = boto3.client('cloudfront')
+              try:
+                  resp = cf.get_distribution_config(Id=cf_dist_id)
+              except:
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+              else:
+                  etag = resp['ETag']
+                  dist_config = resp['DistributionConfig']
+                  dist_config['CallerReference'] = str(datetime.utcnow())
+                  dist_config['DefaultCacheBehavior']['LambdaFunctionAssociations']['Items'][0]['EventType'] = event_type
+                  dist_config['DefaultCacheBehavior']['LambdaFunctionAssociations']['Items'][0]['LambdaFunctionARN'] = func_arn
+              try:
+                  resp = cf.update_distribution(DistributionConfig=dist_config, Id=cf_dist_id, IfMatch=etag)
+              except:
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+              else:
+                  response_data = {'Response': json.dumps(resp)}
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+      Handler: index.handler
+      Role: !GetAtt LambdaCustomExecRole.Arn
+      Runtime: python2.7
+  CustomAssociateCFWithLambdaAtEdge:
+    Type: Custom::AssociateCFWithLambdaAtEdge
+    Version: 1.0
+    Properties:
+      ServiceToken: !GetAtt AssociateCFWithLambdaAtEdge.Arn
+      FunctionArn: !Ref FunctionArn
+      CFDistributionId: !Ref CFDistributionId
+      EventType: !Ref EventType

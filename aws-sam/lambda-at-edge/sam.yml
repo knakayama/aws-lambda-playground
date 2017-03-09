@@ -1,0 +1,56 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda At Edge Sample
+
+Parameters:
+  CFDistributionId:
+    Type: String
+  EventType:
+    Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Configuration
+        Parameters:
+          - CFDistributionId
+          - EventType
+    ParameterLabels:
+      CFDistributionId:
+        default: CloudFront Distribution Id
+      EventType:
+        default: Event Type
+
+Resources:
+  #LambdaAtEdge:
+  #  Type: AWS::CloudFormation::Stack
+  #  Properties:
+  #    TemplateURL: src/templates/custom.yml
+  #    Parameters:
+  #      FunctionArn: !GetAtt LambdaFunction.Arn
+  #      CFDistributionId: !Ref CFDistributionId
+  #      EventType: !Ref EventType
+
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/handler
+      Handler: index.handler
+      Runtime: nodejs4.3-edge
+      MemorySize: 128
+      Timeout: 1
+  LambdaGetFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Action: lambda:GetFunction
+      Principal: edgelambda.amazonaws.com
+  LambdaInvokeFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: edgelambda.amazonaws.com
+      SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CFDistributionId}
