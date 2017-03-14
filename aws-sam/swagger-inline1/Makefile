@@ -1,5 +1,6 @@
 STAGE = _YOUR_STAGE_
 S3_BUCKET = _YOUR_S3_BUCKET_
+STAGE = _YOUR_STAGE_
 STACK_NAME = swagger-inline1
 
 package:
@@ -7,7 +8,7 @@ package:
 	@aws cloudformation package \
 		--template-file sam.yml \
 		--s3-bucket $(S3_BUCKET) \
-		--s3-prefix sam/$(STACK_NAME)/`date '+%Y%m%d'` \
+		--s3-prefix sam/$(STACK_NAME)/$(STAGE)/`date '+%Y%m%d'` \
 		--output-template-file .sam/packaged.yml
 
 deploy:
@@ -26,7 +27,14 @@ deploy:
 			--no-execute-changeset; \
 	fi
 
+execute-changeset:
+	@aws cloudformation execute-change-set \
+		--stack-name $(STACK_NAME)-$(STAGE) \
+		--change-set-name `aws cloudformation list-change-sets \
+			--stack-name $(STACK_NAME)-$(STAGE) \
+			--query 'reverse(sort_by(Summaries,&CreationTime))[0].ChangeSetName' \
+			--output text`
 
-all: package deploy
+all: package deploy execute-changeset
 
-.PHONY: package deploy all
+.PHONY: package deploy execute-changeset all
