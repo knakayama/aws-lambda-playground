@@ -1,0 +1,109 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: swagger-inline-3
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Configuration
+        Parameters:
+          - Env
+    ParameterLabels:
+      Env:
+        default: Env
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Env
+      DefinitionBody:
+        swagger: 2.0
+        info:
+          title: !Sub swagger-external-${Env}
+          description: !Sub swagger-external-${Env}
+          version: 1.0.0
+        schemes:
+          - https
+        basePath: !Sub /${Env}
+        paths:
+          /:
+            get:
+              summary: Root
+              description: |
+                Root Method.
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              parameters:
+                - name: number
+                  in: query
+                  description: Some number
+                  required: true
+                  type: number
+                  format: integer
+              responses:
+                "200":
+                  description: 200 response
+                  schema:
+                    $ref: "#/definitions/Empty"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: 200
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Func1.Arn}/invocations
+                passthroughBehavior: when_no_templates
+                httpMethod: POST
+                type: aws
+                requestTemplates:
+                  application/json: |
+                    {
+                      #foreach($key in $input.params().querystring.keySet())
+                      "$key": "$util.escapeJavaScript($input.params().querystring.get($key))" #if($foreach.hasNext),#end
+                      #end
+                    }
+        definitions:
+          Empty:
+            type: object
+            title: Empty Schema
+
+  Func1:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func1
+      Handler: index.handler
+      Runtime: python2.7
+      Events:
+        PostApi:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+            RestApiId: !Ref Api
+
+  Func1Version2:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref Func1
+  FuncAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref Func1
+      FunctionVersion: !GetAtt Func1Version2.Version
+      Name: TestingForMyApp
+
+Outputs:
+  FuncVersionArn:
+    Value: !Ref Func1Version2
+  FuncVersion:
+    Value: !GetAtt Func1Version2.Version
+  FuncAliasArn:
+    Value: !Ref FuncAlias
