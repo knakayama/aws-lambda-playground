@@ -1,27 +1,29 @@
-ENV = _YOUR_ENV_
+STAGE = _YOUR_STAGE_
 S3_BUCKET = _YOUR_S3_BUCKET_
-SERVICE = swagger-inline
+STACK_NAME = swagger-inline1
 
 package:
 	@[ -d .sam ] || mkdir .sam
 	@aws cloudformation package \
 		--template-file sam.yml \
 		--s3-bucket $(S3_BUCKET) \
-		--s3-prefix sam/$(SERVICE)/`date '+%Y%m%d'` \
+		--s3-prefix sam/$(STACK_NAME)/`date '+%Y%m%d'` \
 		--output-template-file .sam/packaged.yml
 
 deploy:
-	@if [ -f params/param.$(ENV).ini ]; then \
+	@if [ -f params/param.$(STAGE).ini ]; then \
 		aws cloudformation deploy \
 			--template-file .sam/packaged.yml \
-			--stack-name $(SERVICE)-$(ENV) \
+			--stack-name $(STACK_NAME)-$(STAGE) \
 			--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
-			--parameter-overrides `cat params/param.$(ENV).ini | tr '\n' ' ' | awk '{print}'`; \
+			--parameter-overrides `cat params/param.$(STAGE).json | jq -r '.Parameters | to_entries | map("\(.key)=\(.value|tostring)") | .[]' | tr '\n' ' ' | awk '{print}'` \
+			--no-execute-changeset; \
 	else \
 		aws cloudformation deploy \
 			--template-file .sam/packaged.yml \
-			--stack-name $(SERVICE)-$(ENV) \
-			--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM; \
+			--stack-name $(STACK_NAME)-$(STAGE) \
+			--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+			--no-execute-changeset; \
 	fi
 
 
