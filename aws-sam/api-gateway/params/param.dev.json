@@ -1,0 +1,11 @@
+{
+  "Parameters": {
+    "Stage": "dev",
+    "SecurityGroupIds": "sg-1234",
+    "SubnetIds": "subnet-1234,subnet-1234",
+    "RDSEndpointAddress": "test.cluster-1234ap-northeast-1.rds.amazonaws.com",
+    "RDSUser": "test",
+    "RDSPassword": "test1234",
+    "RDSDB": "test"
+  }
+}

@@ -4,7 +4,7 @@ Transform: AWS::Serverless-2016-10-31
 Description: aws-sam-sample
 
 Parameters:
-  Env:
+  Stage:
     Type: String
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
@@ -25,7 +25,7 @@ Metadata:
       - Label:
           default: General Configuration
         Parameters:
-          - Env
+          - Stage
       - Label:
           default: Lambda Configuration
         Parameters:
@@ -36,8 +36,8 @@ Metadata:
           - RDSPassword
           - RDSDB
     ParameterLabels:
-      Env:
-        default: Environment name for this stack
+      Stage:
+        default: Stage name for this stack
       SecurityGroupIds:
         default: Security Group ids to be associated with Lambda function(s)
       SubnetIds:
@@ -55,8 +55,8 @@ Resources:
   Api:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: !Ref Env
-      # TODO: DefinitionUri: !Sub src/api/swagger.${Env}.yml not work
+      StageName: !Ref Stage
+      # TODO: DefinitionUri: !Sub src/api/swagger.${Stage}.yml not work
       # https://github.com/aws/aws-cli/pull/2451
       #DefinitionUri: src/api/swagger.dev.yml
       DefinitionUri: src/api/swagger.dev.yml
@@ -68,8 +68,8 @@ Resources:
   Create:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub create-${Env}
-      Description: !Sub create-${Env}
+      FunctionName: !Sub create-${Stage}
+      Description: !Sub create-${Stage}
       CodeUri: src/handlers/create
       Handler: index.create
       Runtime: python2.7
@@ -97,8 +97,8 @@ Resources:
   User:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub user-${Env}
-      Description: !Sub user-${Env}
+      FunctionName: !Sub user-${Stage}
+      Description: !Sub user-${Stage}
       CodeUri: src/handlers/user
       Handler: index.user
       Runtime: python2.7
@@ -126,8 +126,8 @@ Resources:
   Delete:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub delete-${Env}
-      Description: !Sub delete-${Env}
+      FunctionName: !Sub delete-${Stage}
+      Description: !Sub delete-${Stage}
       CodeUri: src/handlers/delete
       Handler: index.delete
       Runtime: python2.7
@@ -154,4 +154,4 @@ Resources:
 Outputs:
   ApiUrl:
     Description: URL of your API endpoint
-    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${Env}
+    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
