@@ -1,6 +1,5 @@
 STAGE = _YOUR_STAGE_
 S3_BUCKET = _YOUR_S3_BUCKET_
-STAGE = _YOUR_STAGE_
 STACK_NAME = swagger-inline3
 
 package:
