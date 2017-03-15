@@ -1,0 +1,19 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Publish Version
+
+Resources:
+  Func1:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func1
+      Handler: handler.hello
+      Runtime: python2.7
+
+  PublishVersion:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/custom.yml
+      Parameters:
+        FunctionName: !Ref Func1
