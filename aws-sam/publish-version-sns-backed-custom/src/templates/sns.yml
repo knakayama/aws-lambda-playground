@@ -1,0 +1,11 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: SNS Stack
+
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+
+Outputs:
+  TopicArn:
+    Value: !Ref Topic

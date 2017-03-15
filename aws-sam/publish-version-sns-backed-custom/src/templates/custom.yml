@@ -1,0 +1,17 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Custom Stack
+
+Parameters:
+  TopicArn:
+    Type: String
+  FunctionName:
+    Type: String
+
+Resources:
+  CustomPublishVersion:
+    Type: Custom::PublishVersion
+    Version: 1.0
+    Properties:
+      ServiceToken: !Ref TopicArn
+      FunctionName: !Ref FunctionName
