@@ -88,3 +88,7 @@ Resources:
             Path: /
             Method: GET
             RestApiId: !Ref Api
+
+Outputs:
+  ApiUrl:
+    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${Env}

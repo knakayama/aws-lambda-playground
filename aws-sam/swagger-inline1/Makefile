@@ -12,7 +12,7 @@ package:
 		--output-template-file .sam/packaged.yml
 
 deploy:
-	@if [ -f params/param.$(STAGE).ini ]; then \
+	@if [ -f params/param.$(STAGE).json ]; then \
 		aws cloudformation deploy \
 			--template-file .sam/packaged.yml \
 			--stack-name $(STACK_NAME)-$(STAGE) \
