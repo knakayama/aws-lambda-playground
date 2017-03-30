@@ -1,0 +1,53 @@
+swagger: 2.0
+info:
+  title:
+    Fn::Sub: swagger-external-${Stage}
+  description:
+    Fn::Sub: swagger-external-${Stage}
+  version: 1.0.0
+schemes:
+  - https
+basePath:
+  Fn::Sub: /${Stage}
+paths:
+  /:
+    get:
+      summary: Root
+      description: |
+        Root Method.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: number
+          in: query
+          description: Some number
+          required: true
+          type: number
+          format: integer
+      responses:
+        "200":
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Func1.Arn}/invocations
+        passthroughBehavior: when_no_templates
+        httpMethod: POST
+        type: aws
+        requestTemplates:
+          application/json: |
+            {
+              #foreach($key in $input.params().querystring.keySet())
+              "$key": "$util.escapeJavaScript($input.params().querystring.get($key))" #if($foreach.hasNext),#end
+              #end
+            }
+definitions:
+  Empty:
+    type: object
+    title: Empty Schema
