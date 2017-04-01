@@ -1,0 +1,37 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Main Stack
+
+Resources:
+  Func:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func
+      Handler: index.handler
+      Runtime: python2.7
+
+  StepFunction:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/step-function.yml
+      Parameters:
+        FuncArn: !GetAtt Func.Arn
+
+  CloudWatch:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/cloudwatch.yml
+      Parameters:
+        StateMachineName: !GetAtt StepFunction.Outputs.StateMachineName
+        StateMachineArn: !GetAtt StepFunction.Outputs.StateMachineArn
+
+Outputs:
+  StateMachineArn:
+    Value: !GetAtt StepFunction.Outputs.StateMachineArn
+  StateMachineName:
+    Value: !GetAtt StepFunction.Outputs.StateMachineName
+  RuleName:
+    Value: !GetAtt CloudWatch.Outputs.RuleName
+  RuleArn:
+    Value: !GetAtt CloudWatch.Outputs.RuleArn

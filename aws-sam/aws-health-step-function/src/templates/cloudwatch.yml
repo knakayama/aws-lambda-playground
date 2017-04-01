@@ -1,0 +1,122 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudWatch Stack
+
+Parameters:
+  StateMachineName:
+    Type: String
+  StateMachineArn:
+    Type: String
+
+Resources:
+  CloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: CloudWatchPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource: !Ref StateMachineArn
+  # not work
+  # currently Targets property does not support RoleArn
+  #ScheduledRule:
+  #  Type: AWS::Events::Rule
+  #  Properties:
+  #    Description: ScheduledRule
+  #    State: ENABLED
+  #    RoleArn: !GetAtt CloudWatchRole.Arn
+  #    ScheduleExpression: rate(1 minute)
+  #    Targets:
+  #      - Id: TargetStateMachine
+  #        Arn: !Ref StateMachineArn
+  ScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: ScheduledRule
+      State: ENABLED
+      ScheduleExpression: rate(1 minute)
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AssumeRolePolicy
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CloudWatchAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - events:*
+                Resource: !GetAtt ScheduledRule.Arn
+  # not work...
+  # Unknown parameter in Targets[0]: "RoleArn", must be one of: Id, Arn, Input, InputPath
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          from __future__ import print_function
+          from botocore.exceptions import ClientError
+          import cfnresponse
+          import boto3
+          client = boto3.client('events')
+          def handler(event, context):
+              if event['RequestType'] == 'Delete':
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              target_id = event['ResourceProperties']['TargetId']
+              rule_name = event['ResourceProperties']['RuleName']
+              target_arn = event['ResourceProperties']['TargetArn']
+              role_arn = event['ResourceProperties']['RoleArn']
+              target = {'Id': target_id, 'Arn': target_arn, 'RoleArn': role_arn}
+              try:
+                  res = client.put_targets(Rule=rule_name, Targets=[target])
+              except ClientError as e:
+                  print(e['Error']['Message'])
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+              else:
+                  print(res)
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python2.7
+  CustomLambda:
+    Type: Custom::Lambda
+    Version: 1.0
+    Properties:
+      ServiceToken: !GetAtt Lambda.Arn
+      TargetId: !Ref StateMachineName
+      RuleName: !Ref ScheduledRule
+      TargetArn: !Ref StateMachineArn
+      RoleArn: !GetAtt CloudWatchRole.Arn
+
+Outputs:
+  RuleName:
+    Value: !Ref ScheduledRule
+  RuleArn:
+    Value: !GetAtt ScheduledRule.Arn
