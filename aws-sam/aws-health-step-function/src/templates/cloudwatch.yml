@@ -72,7 +72,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - events:*
+                  - events:PutTargets
                 Resource: !GetAtt ScheduledRule.Arn
   # not work...
   # Unknown parameter in Targets[0]: "RoleArn", must be one of: Id, Arn, Input, InputPath
