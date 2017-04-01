@@ -1,0 +1,34 @@
+Resources:
+  InvokeLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: StepFunctionsAssumeRolePolicy
+            Effect: Allow
+            Principal:
+              Service:
+                Fn::Sub: states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+
+  TestStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn:
+        Fn::GetAtt: InvokeLambdaRole.Arn
+      DefinitionString:
+        Fn::Sub: |-
+          {
+            "StartAt": "HelloWorld",
+            "States": {
+              "HelloWorld": {
+                "Type": "Task",
+                "Resource": "${Func.Arn}",
+                "End": true
+              }
+            }
+          }

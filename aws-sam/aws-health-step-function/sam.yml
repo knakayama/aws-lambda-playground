@@ -1,0 +1,27 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Health Step Function
+
+Parameters:
+  ArtifactBucket:
+    Type: String
+
+Resources:
+  Func:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/handler
+      Handler: handler.hello
+      Runtime: python2.7
+
+Transform:
+  Name: AWS::Include
+  Parameters:
+    Location: !Sub s3://${ArtifactBucket}/step-function.yml
+
+Outputs:
+  StateMachineArn:
+    Value: !Ref TestStateMachine
+  StateMachineName:
+    Value: !GetAtt TestStateMachine.Name

@@ -1,0 +1,6 @@
+{
+  "Parameters": {
+    "Stage": "dev",
+    "ArtifactBucket": "_YOUR_S3_BUCKET_"
+  }
+}
