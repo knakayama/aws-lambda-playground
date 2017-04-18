@@ -1,0 +1,21 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Cron Main Stack
+
+Resources:
+  Func1:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func1
+      Handler: index.handler
+      Runtime: python2.7
+      Events:
+        Timer5Min:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0/5 * * * ? *)
+        Timer60Min:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 * * * ? *)
