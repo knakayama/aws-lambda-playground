@@ -13,7 +13,7 @@ deploy:
 	@aws cloudformation deploy \
 		--template-file .sam/packaged.yml \
 		--stack-name $(STACK_NAME) \
-		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+		--capabilities CAPABILITY_IAM
 
 all: package deploy
 
