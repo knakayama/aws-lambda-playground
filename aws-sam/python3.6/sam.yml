@@ -1,0 +1,12 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Python 3.6
+
+Resources:
+  Python36:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/python36
+      Handler: index.handler
+      Runtime: python3.6
