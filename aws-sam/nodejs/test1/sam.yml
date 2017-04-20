@@ -1,0 +1,12 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Nodejs Test1
+
+Resources:
+  Func1:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func1
+      Handler: index.handler
+      Runtime: nodejs4.3
