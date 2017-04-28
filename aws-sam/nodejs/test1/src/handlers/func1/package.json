@@ -1,16 +1,15 @@
 {
-  "name": "with-lambda-tester",
+  "name": "func1",
   "version": "1.0.0",
-  "description": "testing with lambda-tester",
+  "description": "func1",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha --recursive"
+    "test": "mocha --recursive"
   },
-  "author": "richardhyatt",
+  "author": "knakayama",
   "license": "MIT",
   "devDependencies": {
     "chai": "^3.5.0",
-    "lambda-tester": "^1.0.1",
-    "mocha": "^2.4.5"
+    "mocha": "^3.3.0"
   }
 }

@@ -1,8 +1,14 @@
-'use strict';
+const Hello = require('./lib/hello.class.js');
+const hello = new Hello();
 
-exports.handler = function(event, context) {
-    if((event.name === 'Richard') || (event.name === 'rhyatt')) {
-      return context.succeed( { valid: true } );
-    }
-    context.fail(new Error('unknown name'));
+module.exports.hello = (event, context, callback) => {
+  const response = {
+    statusCode: 200,
+    body: JSON.stringify({
+      message: hello.say(),
+      input: event
+    }),
+  };
+
+  callback(null, response);
 };

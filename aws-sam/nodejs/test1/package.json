@@ -1,0 +1,16 @@
+{
+  "name": "nodejs-test1",
+  "version": "1.0.0",
+  "description": "nodejs-test1",
+  "scripts": {
+    "temp-dir": "mkdirp .sam",
+    "package": "npm run temp-dir && ./bin/package.sh $npm_package_name $s3_bucket",
+    "deploy": "npm run temp-dir && ./bin/deploy.sh $npm_package_name $s3_bucket",
+    "setup": "cd src/handlers/func && npm install"
+  },
+  "author": "knakayama",
+  "license": "MIT",
+  "devDependencies": {
+    "mkdirp": "^0.5.1"
+  }
+}
