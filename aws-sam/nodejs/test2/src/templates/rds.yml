@@ -1,0 +1,120 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Nodejs Test RDS Stack
+
+Parameters:
+  Tag:
+    Type: String
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  MasterUsername:
+    Type: String
+  MasterUserPassword:
+    Type: String
+
+Resources:
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "-"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${Tag}-rds-sg
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "-"
+      SubnetIds: !Ref SubnetIds
+      Tags:
+        - Key: Name
+          Value: !Sub ${Tag}-sg
+  RDS:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 5
+      DBInstanceClass: db.t2.micro
+      Engine: MySQL
+      EngineVersion: 5.7.16
+      MasterUsername: !Ref MasterUsername
+      MasterUserPassword: !Ref MasterUserPassword
+      PubliclyAccessible: true
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Ref Tag
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AssumeRolePolicy
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: EC2Access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: RDSAccess
+                Effect: Allow
+                Action:
+                  - rds:ModifyDBInstance
+                Resource: !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${RDS}
+  LambdaEnableDBIAMAuth:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: nodejs6.10
+      Code:
+        ZipFile: |
+          const response = require('cfn-response');
+          const aws = require('aws-sdk');
+          exports.handler = (event, context, callback) => {
+            let responseData = {};
+            if (event.RequestType === 'Delete') {
+              response.send(event, context, response.SUCCESS, responseData);
+            }
+            const rds = new aws.RDS();
+            let params = {
+              DBInstanceIdentifier: event.ResourceProperties.DBInstanceIdentifier,
+              EnableIAMDatabaseAuthentication: true
+            };
+            rds.modifyDBInstance(params, (err, data) => {
+              if (err) {
+                console.log(err, err.stack);
+                response.send(event, context, response.FAILED, responseData);
+              }
+              console.log(data);
+              response.send(event, context, response.SUCCESS, responseData);
+            });
+          };
+  CustomEnableDBIAMAuth:
+    Type: Custom::EnableDBIAMAuth
+    Version: 1.0
+    Properties:
+      ServiceToken: !GetAtt LambdaEnableDBIAMAuth.Arn
+      DBInstanceIdentifier: !Ref RDS
+
+Outputs:
+  RdsIdentifier:
+    Value: !Ref RDS
+  RdsEndpointAddress:
+    Value: !GetAtt RDS.Endpoint.Address

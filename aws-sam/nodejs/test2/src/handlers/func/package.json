@@ -1,0 +1,15 @@
+{
+  "name": "func",
+  "version": "1.0.0",
+  "description": "func",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "knakayama",
+  "license": "MIT",
+  "devDependencies": {
+    "aws-sdk": "^2.46.0",
+    "mysql": "github:mysqljs/mysql"
+  }
+}

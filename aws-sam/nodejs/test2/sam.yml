@@ -1,0 +1,63 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Nodejs Test Main Stack
+
+Parameters:
+  Tag:
+    Type: String
+    Default: nodejs-test
+  MasterUsername:
+    Type: String
+    Default: masteruser
+  MasterUserPassword:
+    Type: String
+    Default: pAssw0rd
+  RdsIamUser:
+    Type: String
+    Default: rdsiamuser
+
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/vpc.yml
+      Parameters:
+        Tag: !Ref Tag
+        VpcCidr: 192.168.0.0/16
+        SubnetCidr1: 192.168.0.0/24
+        SubnetCidr2: 192.168.1.0/24
+  RDS:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/rds.yml
+      Parameters:
+        Tag: !Ref Tag
+        VpcId: !GetAtt VPC.Outputs.VpcId
+        SubnetIds: !GetAtt VPC.Outputs.SubnetIds
+        MasterUsername: !Ref MasterUsername
+        MasterUserPassword: !Ref MasterUserPassword
+  Func:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func
+      Handler: index.handler
+      Runtime: nodejs6.10
+      Timeout: 30
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Sid: RDSAccess
+              Effect: Allow
+              Action: rds-db:connect
+              Resource: !Sub arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:${RDS.Outputs.RdsIdentifier}:${RdsIamUser}
+      Environment:
+        Variables:
+          RDSEndpointAddress: !GetAtt RDS.Outputs.RdsEndpointAddress
+          MasterUsername: !Ref MasterUsername
+          MasterUserPassword: !Ref MasterUserPassword
+          RdsIamUser: !Ref RdsIamUser
+
+Outputs:
+  RdsEndpointAddress:
+    Value: !GetAtt RDS.Outputs.RdsEndpointAddress
