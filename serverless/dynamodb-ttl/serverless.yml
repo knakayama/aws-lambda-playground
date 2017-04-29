@@ -1,0 +1,68 @@
+service: dynamodb-ttl
+custom:
+  config: ${file(config.yml)}
+  dynamodb:
+    ttl:
+      - table: ${self:custom.config.tableName}
+        field: ttl
+
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  cfLogs: true
+  iamRoleStatements:
+    - Sid: DynamoDBAccess
+      Effect: Allow
+      Resource:
+        - Fn::Join: [ "", [ "arn:aws:dynamodb:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":", "table/", Ref: TestTable ] ]
+      Action:
+        - dynamodb:*
+
+plugins:
+  - serverless-dynamodb-ttl
+
+package:
+  include:
+    - src/**
+  exclude:
+    - .git/**
+    - config.yml
+    - package.json
+    - serverless.yml
+    - node_modules/**
+
+functions:
+  scan:
+    handler: src/handlers/dynamodb/index.scan
+    environment:
+      TableName:
+        Ref: TestTable
+  put:
+    handler: src/handlers/dynamodb/index.put
+    environment:
+      TableName:
+        Ref: TestTable
+
+resources:
+  Resources:
+    TestTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.config.tableName}
+        AttributeDefinitions:
+          - AttributeName: ttl
+            AttributeType: N
+          - AttributeName: time
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ttl
+            KeyType: HASH
+          - AttributeName: time
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
