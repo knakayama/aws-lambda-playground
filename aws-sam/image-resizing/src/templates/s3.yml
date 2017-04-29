@@ -1,0 +1,43 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Image Resizing S3 Stack
+
+Parameters:
+  ImageBucketName:
+    Type: String
+  ApiName:
+    Type: String
+
+Resources:
+  ImageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref ImageBucketName
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        RoutingRules:
+          - RedirectRule:
+              HttpRedirectCode: 307
+              HostName: !Sub ${ApiName}.execute-api.${AWS::Region}.amazonaws.com
+              Protocol: https
+              ReplaceKeyPrefixWith: prod?key=
+            RoutingRuleCondition:
+              HttpErrorCodeReturnedEquals: 404
+  ImageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ImageBucket
+      PolicyDocument:
+        Statement:
+          - Sid: S3Access
+            Effect: Allow
+            Action: s3:GetObject
+            Principal: "*"
+            Resource: !Sub arn:aws:s3:::${ImageBucket}/*
+
+Outputs:
+  BucketName:
+    Value: !Ref ImageBucket
+  WebsiteURL:
+    Value: !GetAtt ImageBucket.WebsiteURL

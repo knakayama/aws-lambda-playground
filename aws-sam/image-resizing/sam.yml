@@ -1,0 +1,62 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Image Resizing Main Stack
+
+Parameters:
+  ArtifactBucket:
+    Type: String
+  ImageBucketName:
+    Type: String
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: !Sub s3://${ArtifactBucket}/swagger.yml
+
+  Func:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func
+      Handler: index.handler
+      Runtime: nodejs6.10
+      MemorySize: 1536
+      Timeout: 60
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Sid: S3Access
+              Effect: Allow
+              Action: s3:PutObject
+              Resource: !Sub arn:aws:s3:::${ImageBucketName}/*
+      Environment:
+        Variables:
+          BucketName: !Ref ImageBucketName
+          WebsiteURL: !Sub http://${ImageBucketName}.s3-website-${AWS::Region}.amazonaws.com
+      Events:
+        PostApi:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+            RestApiId: !Ref Api
+
+  S3:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/s3.yml
+      Parameters:
+        ApiName: !Ref Api
+        ImageBucketName: !Ref ImageBucketName
+
+Outputs:
+  BucketName:
+    Value: !GetAtt S3.Outputs.BucketName
+  WebsiteURL:
+    Value: !GetAtt S3.Outputs.WebsiteURL
