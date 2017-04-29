@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 
+stack_name="dynamodb-ttl"
 function_name="$1"
 
 aws lambda invoke \
-  --function-name "$function_name" \
+  --function-name "$(aws cloudformation describe-stack-resource \
+    --stack-name "$stack_name" \
+    --logical-resource-id "$function_name" \
+    --query 'StackResourceDetail.PhysicalResourceId' \
+    --output text)" \
   --log-type Tail \
   --query 'LogResult' \
   $ops \
