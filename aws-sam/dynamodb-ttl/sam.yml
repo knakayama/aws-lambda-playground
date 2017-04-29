@@ -1,0 +1,59 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: DynamoDB TTL Main Stack
+
+Resources:
+  DynamoDB:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/dynamodb.yml
+
+  Scan:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/dynamodb
+      Handler: index.scan
+      Runtime: nodejs6.10
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Sid: DynamoDBAccess
+              Effect: Allow
+              Action:
+                - dynamodb:*
+              Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDB.Outputs.TableName}
+      Environment:
+        Variables:
+          TableName: !GetAtt DynamoDB.Outputs.TableName
+  Put:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/dynamodb
+      Handler: index.put
+      Runtime: nodejs6.10
+      Environment:
+        Variables:
+          TableName: !GetAtt DynamoDB.Outputs.TableName
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Sid: DynamoDBAccess
+              Effect: Allow
+              Action:
+                - dynamodb:*
+              Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDB.Outputs.TableName}
+  Custom:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: src/templates/custom.yml
+      Parameters:
+        TableName: !GetAtt DynamoDB.Outputs.TableName
+        AttributeName: ttl
+Outputs:
+  TableName:
+    Value: !GetAtt DynamoDB.Outputs.TableName
+  Scan:
+    Value: !Ref Scan
+  Put:
+    Value: !Ref Put

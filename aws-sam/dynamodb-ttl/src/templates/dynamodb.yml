@@ -1,0 +1,25 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: DynamoDB TTL DynamoDB Stack
+
+Resources:
+  TestTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: ttl
+          AttributeType: N
+        - AttributeName: time
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ttl
+          KeyType: HASH
+        - AttributeName: time
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+Outputs:
+  TableName:
+    Value: !Ref TestTable

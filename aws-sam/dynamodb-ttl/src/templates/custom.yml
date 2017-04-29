@@ -1,0 +1,74 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: DynamoDB TTL Custom Stack
+
+Parameters:
+  TableName:
+    Type: String
+  AttributeName:
+    Type: String
+
+Resources:
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AssumeRolePolicy
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: DynamoDBAccess
+                Effect: Allow
+                Action:
+                  - dynamodb:UpdateTimeToLive
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}
+  LambdaUpdateTimeToLive:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: nodejs6.10
+      Code:
+        ZipFile: |
+            const response = require('cfn-response');
+            const AWS = require('aws-sdk');
+            exports.handler = (event, context, callback) => {
+              let responseData = {};
+              if (event.RequestType === 'Delete') {
+                response.send(event, context, response.SUCCESS, responseData);
+              }
+              const dynamodb = new AWS.DynamoDB();
+              let params = {
+                TableName: event.ResourceProperties.TableName,
+                TimeToLiveSpecification: {
+                  AttributeName: event.ResourceProperties.AttributeName,
+                  Enabled: true
+                }
+              };
+              dynamodb.updateTimeToLive(params, (err, data) => {
+                if (err) {
+                  console.log(err, err.stack);
+                  response.send(event, context, response.FAILED, responseData);
+                } else {
+                  response.send(event, context, response.SUCCESS, responseData);
+                }
+              });
+            };
+  CustomUpdateTimeToLive:
+    Type: Custom::UpdateTimeToLive
+    Version: 1.0
+    Properties:
+      ServiceToken: !GetAtt LambdaUpdateTimeToLive.Arn
+      TableName: !Ref TableName
+      AttributeName: !Ref AttributeName

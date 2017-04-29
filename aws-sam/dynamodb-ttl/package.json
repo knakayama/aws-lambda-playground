@@ -1,0 +1,17 @@
+{
+  "name": "dynamodb-ttl",
+  "version": "0.0.1",
+  "description": "dynamodb-ttl",
+  "scripts": {
+    "temp-dir": "mkdirp .sam",
+    "package": "npm run temp-dir && ./bin/package.sh $npm_package_name $s3_bucket",
+    "deploy": "npm run temp-dir && ./bin/deploy.sh $npm_package_name $s3_bucket",
+    "setup": "cd src/handlers/func && npm install",
+    "invoke": "./bin/invoke.sh $function_name"
+  },
+  "author": "knakayama",
+  "license": "MIT",
+  "devDependencies": {
+    "mkdirp": "^0.5.1"
+  }
+}
