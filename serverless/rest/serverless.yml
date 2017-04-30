@@ -1,0 +1,64 @@
+# https://serverless.com/blog/node-rest-api-with-serverless-lambda-and-dynamodb/
+
+service: rest
+custom:
+  config: ${file(config.yml)}
+
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  iamRoleStatements:
+    - Sid: DynamoDBAccess
+      Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource:
+        - Fn::Join: [ "", [ "arn:aws:dynamodb:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":", "table/", Ref: CandidatesDynamoDBTable ] ]
+  environment:
+    CANDIDATE_TABLE:
+      Ref: CandidatesDynamoDBTable
+
+package:
+  include:
+    - src/**
+  exclude:
+    - .git/**
+    - config.yml
+    - package.json
+    - serverless.yml
+    - node_modules/**
+
+functions:
+  candidateSubmission:
+    handler: src/handlers/api/candidates.submit
+    memorySize: 128
+    description: Submit candidate information and starts interview process.
+    events:
+      - http:
+          path: candidates
+          method: post
+  listCandidates:
+    handler: src/handlers/api/candidates.list
+    memorySize: 128
+    description: List all candidates
+    events:
+      - http:
+          path: candidates
+          method: get
+  candidateDetails:
+    handler: src/handlers/api/candidates.get
+    memorySize: 128
+    description: List candidate detail
+    events:
+      - http:
+          path: candidates/{id}
+          method: get
+
+resources: ${file(${self:custom.config.resources})}
