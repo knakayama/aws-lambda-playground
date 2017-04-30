@@ -1,0 +1,51 @@
+service: test
+custom:
+  config: ${file(config.yml)}
+
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  cfLogs: true
+  iamRoleStatements:
+    - Sid: DynamoDBAccess
+      Effect: Allow
+      Resource:
+        - Fn::Join: [ "", [ "arn:aws:dynamodb:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":", "table/", Ref: TestTable ] ]
+      Action:
+        - dynamodb:*
+
+package:
+  include:
+    - src/**
+  exclude:
+    - .git/**
+    - config.yml
+    - package.json
+    - serverless.yml
+    - node_modules/**
+
+functions:
+  put:
+    handler: src/handlers/dynamodb/index.put
+    environment:
+      TableName:
+        Ref: TestTable
+
+resources:
+  Resources:
+    TestTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1

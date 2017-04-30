@@ -1,0 +1,15 @@
+{
+  "name": "test",
+  "version": "0.0.1",
+  "description": "http://qiita.com/horike37/items/41f9586d315c91d49305",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha src/handlers/*/tests"
+  },
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^3.3.0",
+    "serverless": "^1.12.1"
+  }
+}
