@@ -1,0 +1,14 @@
+{
+  "name": "test1",
+  "version": "0.0.1",
+  "description": "",
+  "main": "src/handlers/func/index.js",
+  "scripts": {
+    "test": "standard src/handlers/func1/index.js | snazzy"
+  },
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless": "^1.12.1"
+  }
+}

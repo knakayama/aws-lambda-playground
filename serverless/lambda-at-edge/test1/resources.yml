@@ -1,0 +1,102 @@
+Resources:
+  Func3LogGroup:
+    Properties:
+      RetentionInDays: 30
+  CustomRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: LambdaAssumePolicy
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+          - Sid: EdgeLambdaAssumePolicy
+            Effect: Allow
+            Principal:
+              Service:
+                - edgelambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+  BucketPolicy:
+   Type: AWS::S3::BucketPolicy
+   Properties:
+     Bucket:
+       Ref: Bucket
+     PolicyDocument:
+       Statement:
+         - Sid: S3Access
+           Action: s3:GetObject
+           Effect: Allow
+           Resource:
+             Fn::Join: [ "", [ "arn:aws:s3:::", Ref: Bucket, /* ] ]
+           Principal: "*"
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment:
+          Ref: AWS::StackId
+        DefaultRootObject: index.html
+        #Aliases:
+        #  - !Ref SiteFQDN
+        #Logging:
+        #  Bucket: !GetAtt CFLogBucket.DomainName
+        PriceClass: PriceClass_200
+        Origins:
+          - DomainName:
+              Fn::GetAtt: Bucket.DomainName
+            Id:
+              Fn::Join: [ "-", [ S3, Ref: Bucket ] ]
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+        DefaultCacheBehavior:
+          TargetOriginId:
+            Fn::Join: [ "-", [ S3, Ref: Bucket ] ]
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: allow-all
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+          MinTTL: 0
+        #ViewerCertificate:
+        #  SslSupportMethod: sni-only
+        #  AcmCertificateArn: !Ref ACMArn
+  LambdaGetFunctionPermission:
+    DependsOn: Func3LambdaFunction
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt: Func3LambdaFunction.Arn
+      Action: lambda:GetFunction
+      Principal: edgelambda.amazonaws.com
+  LambdaInvokeFunctionPermission:
+    DependsOn: Func3LambdaFunction
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt: Func3LambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: edgelambda.amazonaws.com
+      SourceArn:
+        Fn::Join: [ "", [ "arn:aws:cloudfront::", Ref: "AWS::AccountId", ":distribution/", Ref: Distribution ] ]
+
+Outputs:
+  WebsiteURL:
+    Value:
+      Fn::GetAtt: Bucket.WebsiteURL

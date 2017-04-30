@@ -1,0 +1,31 @@
+service: lambda-at-edge-test1
+custom:
+  config: ${file(config.yml)}
+
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs4.3-edge
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  cfLogs: true
+  memorySize: 128
+  timeout: 1
+  role: CustomRole
+
+package:
+  include:
+    - src/**
+  exclude:
+    - .git/**
+    - config.yml
+    - package.json
+    - serverless.yml
+    - node_modules/**
+
+functions:
+  func3:
+    handler: src/handlers/func3/index.handler
+
+resources: ${file(${self:custom.config.resources})}

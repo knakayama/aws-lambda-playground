@@ -1,0 +1,45 @@
+{
+  "Records": [
+    {
+      "cf": {
+        "request": {
+          "headers": {
+            "Host": [
+              "d123.cf.net"
+            ],
+            "Cookie": [
+              "SomeCookie=1; AnotcherOne=A",
+              "X-Experiment-Name=B"
+            ],
+            "User-Agent": [
+              "Test Agent"
+            ]
+          },
+          "clientIp": "2001:cdba::3257:9652",
+          "httpVersion": "2.0",
+          "uri": "/experiment-pixel.jpg",
+          "method": "GET"
+        },
+        "config": {
+          "distributionId": "EXAMPLE"
+        },
+        "response": {
+          "status": "302",
+          "headers": {
+            "Last-Modified": [
+              "2017-01-13"
+            ],
+            "Vary": [
+              "*"
+            ],
+            "X-Amz-Meta-Last-Modified": [
+              "2017-01-13"
+            ]
+          },
+          "statusDescription": "302 Found",
+          "httpVersion": "2.0"
+        }
+      }
+    }
+  ]
+}
