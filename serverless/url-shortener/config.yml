@@ -1,0 +1,7 @@
+stage: prod
+region: ap-northeast-1
+resources: resources.yml
+expirationInDays: 7
+source: sha-public-us-west-2/URLShortener/index.html
+prefix: u
+logRetentionInDays: 7

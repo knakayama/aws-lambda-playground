@@ -1,0 +1,153 @@
+Resources:
+  S3BucketForURLs:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+      LifecycleConfiguration:
+        Rules:
+          - Id: DisposeShortUrls
+            ExpirationInDays: ${self:custom.config.expirationInDays}
+            Prefix: ${self:custom.config.prefix}
+            Status: Enabled
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: S3BucketForURLs
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: S3GetAccess
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource:
+              Fn::Join: [ "", [ "arn:aws:s3:::", Ref: S3BucketForURLs, /* ] ]
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment:
+          Ref: AWS::StackId
+        PriceClass: PriceClass_200
+        Origins:
+          - DomainName:
+              Fn::Join: [ "", [ Ref: S3BucketForURLs, .s3-website-, Ref: "AWS::Region", .amazonaws.com ] ]
+            Id: OriginRedirect
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+            OriginPath: /u
+          - DomainName:
+              Fn::Join: [ "", [ Ref: S3BucketForURLs, .s3-website-, Ref: "AWS::Region", .amazonaws.com ] ]
+            Id: OriginAdmin
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+          - DomainName:
+              Fn::Join: [ "", [ Ref: ApiGatewayRestApi, ".execute-api.", Ref: "AWS::Region", ".amazonaws.com" ] ]
+            Id: OriginAPIGW
+            CustomOriginConfig:
+              OriginProtocolPolicy: match-viewer
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: false
+          TargetOriginId: OriginRedirect
+          ViewerProtocolPolicy: redirect-to-https
+        CacheBehaviors:
+          - ForwardedValues:
+              QueryString: false
+            TargetOriginId: OriginAdmin
+            ViewerProtocolPolicy: redirect-to-https
+            PathPattern: /admin/*
+          - AllowedMethods: [ DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT ]
+            CachedMethods: [ GET, HEAD, OPTIONS ]
+            ForwardedValues:
+              QueryString: false
+            TargetOriginId: OriginAPIGW
+            ViewerProtocolPolicy: https-only
+            PathPattern: /${self:custom.config.stage}/*
+
+  LambdaExecRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: LambdaAssumePolicy
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName:
+            Fn::Join: [ "", [ Ref: "AWS::StackName", "-", Policy ] ]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: S3GetAccess
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: arn:aws:s3:::*
+              - Sid: S3PutAccess
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  Fn::Join: [ "", [ "arn:aws:s3:::", Ref: S3BucketForURLs, /* ] ]
+  LambdaS3Copy:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role:
+        Fn::GetAtt: [ LambdaExecRole, Arn ]
+      Runtime: nodejs6.10
+      Code:
+        ZipFile: |
+          const AWS = require('aws-sdk');
+          const response = require('cfn-response');
+          exports.handler = (event, context, callback) => {
+            if (event.RequestType === 'Delete') response.send(event, context, response.FAILED, {});
+            const s3 = new AWS.S3();
+            const params = {
+              CopySource: event.ResourceProperties.Source,
+              Bucket: event.ResourceProperties.Bucket,
+              Key: event.ResourceProperties.Key,
+            };
+            s3.copyObject(params, (err, data) => {
+              if (err) response.send(event, context, response.FAILED, err);
+              else response.send(event, context, response.SUCCESS, data);
+            });
+          };
+  CustomS3Copy:
+    Type: Custom::S3Copy
+    Version: "1.0"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt: [ LambdaS3Copy, Arn ]
+      Bucket:
+        Ref: S3BucketForURLs
+      Key: admin/index.html
+      Source: ${self:custom.config.source}
+
+  UrlShortenerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: ${self:custom.config.logRetentionInDays}
+
+Outputs:
+  S3BucketName:
+    Value:
+      Ref: S3BucketForURLs
+  ConnectURL:
+    Value:
+      Fn::Join:
+        - ""
+        - - "https://"
+          - Fn::GetAtt: [ Distribution, DomainName ]
+          - /admin/

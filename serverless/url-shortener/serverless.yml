@@ -1,0 +1,49 @@
+service: aws-serverless-url-shortener
+custom:
+  config: ${file(config.yml)}
+
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  memorySize: 128
+  timeout: 10
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  cfLogs: true
+  iamRoleStatements:
+    - Sid: S3GetPutAccess
+      Effect: Allow
+      Resource:
+        - Fn::Join: [ "", [ "arn:aws:s3:::", Ref: S3BucketForURLs, /* ] ]
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+    - Sid: S3ListAccess
+      Effect: Allow
+      Resource:
+        - Fn::Join: [ "", [ "arn:aws:s3:::", Ref: S3BucketForURLs ] ]
+      Action:
+        - s3:ListBucket
+
+package:
+  include:
+    - src/handlers/*/*
+    - src/handlers/*/lib/**
+  exclude:
+    - "**"
+
+functions:
+  urlShortener:
+    handler: src/handlers/urlShortener/index.handler
+    environment:
+      S3_BUCKET:
+        Ref: S3BucketForURLs
+      S3_PREFIX: ${self:custom.config.prefix}
+    events:
+      - http:
+          path: /
+          method: post
+
+resources: ${file(${self:custom.config.resources})}

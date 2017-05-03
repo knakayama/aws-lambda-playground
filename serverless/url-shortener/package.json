@@ -1,0 +1,20 @@
+{
+  "name": "serverless-framework",
+  "version": "0.0.1",
+  "description": "",
+  "scripts": {
+    "test": "for handler in src/handlers/*; do cd $handler && ./node_modules/.bin/mocha; done"
+  },
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-eslint": "^7.2.3",
+    "eslint": "^3.19.0",
+    "eslint-config-airbnb": "^14.1.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^4.0.0",
+    "eslint-plugin-react": "^6.10.3",
+    "serverless": "^1.12.1"
+  },
+  "dependencies": {}
+}
