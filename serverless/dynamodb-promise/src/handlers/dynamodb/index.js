@@ -80,9 +80,9 @@ exports.handler = (event, context, callback) => {
   }).then((data) => {
     const inclumentedCount = data.Item.Data.count;
     return putTodo(inclumentedCount, todo);
-  }).catch((err) => {
-    callback(JSON.stringify(err))
   }).then((data) => {
-    callback(null, JSON.stringify(data));
+    callback(null, JSON.stringify(data))
+  }).catch((err) => {
+    callback(JSON.stringify(err));
   })
 };
