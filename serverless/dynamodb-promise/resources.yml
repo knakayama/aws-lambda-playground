@@ -1,0 +1,38 @@
+Resources:
+  TestTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: StorageName
+          AttributeType: S
+        - AttributeName: DataName
+          AttributeType: S
+        #- AttributeName: Data
+        #  AttributeType: S
+      KeySchema:
+        - AttributeName: StorageName
+          KeyType: HASH
+        - AttributeName: DataName
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      #LocalSecondaryIndexes:
+      #  - IndexName: myLSI
+      #    KeySchema:
+      #      - AttributeName: DataName
+      #        KeyType: RANGE
+      #    Projection:
+      #      #NonKeyAttributes:
+      #      #  - "Artist"
+      #      #  - "NumberOfSongs"
+      #      ProjectionType: ALL
+  DynamodbLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: ${self:custom.config.retentionInDays}
+
+Outputs:
+  TableName:
+    Value:
+      Ref: TestTable
