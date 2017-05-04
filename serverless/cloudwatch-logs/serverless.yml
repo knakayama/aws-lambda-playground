@@ -1,0 +1,34 @@
+service: cloudwatch-logs
+custom:
+  config: ${file(config.yml)}
+
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  cfLogs: true
+
+package:
+  include:
+    - src/handlers/*/*
+    - src/handlers/*/lib/**
+  exclude:
+    - "**"
+
+functions:
+  func1:
+    handler: src/handlers/func1/index.handler
+    events:
+      - schedule: rate(1 minute)
+
+  func2:
+    handler: src/handlers/func2/index.handler
+    events:
+      - cloudwatchLog:
+          logGroup: /aws/lambda/cloudwatch-logs-${self:custom.config.stage}-func1
+          filter: '{$.errorMessage = Test}'
+
+resources: ${file(${self:custom.config.resources})}

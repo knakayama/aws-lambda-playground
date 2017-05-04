@@ -1,0 +1,5 @@
+Resources:
+  FuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: ${self:custom.config.retentionInDays}
