@@ -27,13 +27,10 @@ plugins:
 
 package:
   include:
-    - src/**
+    - src/handlers/*/*
+    - src/handlers/*/lib/**
   exclude:
-    - .git/**
-    - config.yml
-    - package.json
-    - serverless.yml
-    - node_modules/**
+    - "**"
 
 functions:
   scan:
