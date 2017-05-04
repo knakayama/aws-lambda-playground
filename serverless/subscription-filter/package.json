@@ -1,0 +1,15 @@
+{
+  "name": "subscription-filter",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "serverless": "^1.12.1",
+    "serverless-plugin-subscription-filter": "^1.0.3"
+  }
+}

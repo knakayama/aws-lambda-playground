@@ -1,0 +1,38 @@
+service: subscription-filter
+custom:
+  config: ${file(config.yml)}
+
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: v0
+  region: ap-northeast-1
+  cfLogs: true
+
+plugins:
+  - serverless-plugin-subscription-filter
+
+package:
+  include:
+    - src/handlers/*/*
+    - src/handlers/*/lib/**
+  exclude:
+    - "**"
+
+functions:
+  func1:
+    handler: src/handlers/func1/index.handler
+    events:
+      - schedule: rate(1 minute)
+
+  func2:
+    handler: src/handlers/func2/index.handler
+    events:
+      - subscriptionFilter:
+          stage: v0
+          logGroupName: /aws/lambda/subscription-filter-v0-func1
+          filterPattern: '{ $.errorMessage = Test }'
+
+resources: ${file(${self:custom.config.resources})}
