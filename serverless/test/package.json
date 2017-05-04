@@ -4,12 +4,11 @@
   "description": "http://qiita.com/horike37/items/41f9586d315c91d49305",
   "main": "index.js",
   "scripts": {
-    "test": "mocha src/handlers/*/tests"
+    "test": "for handler in src/handlers/*; do cd $handler && ./node_modules/.bin/mocha; done"
   },
   "author": "knakayama <knakayama.sh@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "mocha": "^3.3.0",
     "serverless": "^1.12.1"
   }
 }

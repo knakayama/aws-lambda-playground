@@ -1,39 +1,37 @@
-'use strict'
-
-const AWS = require('aws-sdk')
+const AWS = require('aws-sdk');
 
 class Users {
   constructor(table) {
-    this.table = table
-    this.dynamodb = new AWS.DynamoDB()
+    this.table = table;
+    this.dynamodb = new AWS.DynamoDB();
   }
 
   putData(email) {
-    let params = {
+    const params = {
       TableName: this.table,
-      Item: {'email': {'S': email}}
-    }
+      Item: { 'email': { 'S': email } },
+    };
 
-    return this.dynamodb.putItem(params).promise()
+    return this.dynamodb.putItem(params).promise();
   }
 
   getData(email) {
-    let params = {
+    const params = {
       TableName: this.table,
-      Key: {'email': {'S': email}}
-    }
+      Key: { 'email': { 'S': email } },
+    };
 
-    return this.dynamodb.getItem(params).promise()
+    return this.dynamodb.getItem(params).promise();
   }
 
   deleteData(email) {
-    let params = {
+    const params = {
       TableName: this.table,
-      Key: {'email': {'S':email}}
-    }
+      Key: { 'email': { 'S': email } },
+    };
 
-    return this.dynamodb.deleteItem(params).promise()
+    return this.dynamodb.deleteItem(params).promise();
   }
 }
 
-module.exports = Users
+module.exports = Users;
