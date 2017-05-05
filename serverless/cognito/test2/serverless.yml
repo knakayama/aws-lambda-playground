@@ -1,0 +1,43 @@
+service: cognito-test2
+custom:
+  config: ${file(config.yml)}
+
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  cfLogs: true
+  iamRoleStatements:
+    - Sid: CognitoAccess
+      Effect: Allow
+      Action:
+        - cognito:*
+      Resource:
+        - Fn::GetAtt: [ UserPool, Arn ]
+
+package:
+  include:
+    - react-serverless-dashboard/api/**
+  exclude:
+    - "**"
+
+functions:
+  authorizerFunc:
+    handler: react-serverless-dashboard/api/authorizer.handler
+  private:
+    handler: react-serverless-dashboard/api/private/yourname.handler
+    events:
+      - http:
+          path: private/yourname
+          method: get
+          integration: lambda
+          cors: true
+          authorizer:
+            name: authorizerFunc
+            resultTtlInSeconds: 0
+            identitySource: method.request.header.Authorization
+
+resources: ${file(${self:custom.config.resources})}

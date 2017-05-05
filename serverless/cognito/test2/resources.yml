@@ -1,0 +1,71 @@
+Parameters:
+  RetentionInDays:
+    Type: Number
+    Default: ${self:custom.config.retentionInDays}
+  UserPoolName:
+    Type: String
+    Default: ${self:custom.config.userPoolName}
+
+Resources:
+  AuthorizerFuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: RetentionInDays
+  PrivateFuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: RetentionInDays
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName:
+        Ref: UserPoolName
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+        UnusedAccountValidityDays: 7
+      MfaConfiguration: OFF
+      UserPoolTags:
+        Name:
+          Ref: "AWS::StackName"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      AutoVerifiedAttributes:
+        - email
+      AliasAttributes:
+        - email
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: true
+          StringAttributeConstraints:
+            MinLength: 0
+            MaxLength: 2048
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+        GenerateSecret: false
+        RefreshTokenValidity: 30
+        UserPoolId:
+          Ref: UserPool
+
+Outputs:
+  UserPoolId:
+    Value:
+      Ref: UserPool
+  UserPoolArn:
+    Value:
+      Fn::GetAtt: [ UserPool, Arn ]
+  UserPoolClientId:
+    Value:
+      Ref: UserPoolClient
