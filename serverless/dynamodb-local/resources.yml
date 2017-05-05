@@ -1,0 +1,33 @@
+Parameters:
+  RetentionInDays:
+    Type: Number
+    Default: ${self:custom.config.retentionInDays}
+
+Resources:
+  DynamodbLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: RetentionInDays
+
+  TestTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      # not work
+      #TableName:
+      #  Ref: TableName
+      TableName: ${self:custom.config.tableName}
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+Outputs:
+  TableName:
+    Value:
+      Ref: TestTable
