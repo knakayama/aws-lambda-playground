@@ -1,0 +1,14 @@
+{
+  "name": "localstack",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "docker:run": "./bin/docker-run.sh"
+  },
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless": "^1.12.1"
+  }
+}
