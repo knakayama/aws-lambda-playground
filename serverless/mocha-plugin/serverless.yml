@@ -1,0 +1,29 @@
+service: mocha-plugin
+
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+custom:
+  config: ${file(config.yml)}
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  cfLogs: true
+
+package:
+  include:
+    - src/handlers/*/*
+    - src/handlers/*/lib/**
+  exclude:
+    - "**"
+
+plugins:
+  - serverless-mocha-plugin
+
+functions:
+  date:
+    handler: src/handlers/date/index.handler
+  hello:
+    handler: src/handlers/hello/index.handler
