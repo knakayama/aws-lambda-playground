@@ -1,0 +1,42 @@
+frameworkVersion: ">=1.12.1 <2.0.0"
+
+service: dynamodb-stream2sqs
+
+custom:
+  config: ${file(config.yml)}
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  cfLogs: true
+
+package:
+  include:
+    - src/handlers/**
+  exclude:
+    - "**"
+
+functions:
+  put:
+    handler: src/handlers/put/index.handler
+    role: LambdaPutRole
+    environment:
+      TABLE_NAME:
+        Ref: TestTable
+    events:
+      - schedule: rate(1 minute)
+  stream:
+    handler: src/handlers/stream/index.handler
+    role: LambdaStreamRole
+    environment:
+      QUEUE_URL:
+        Ref: Queue
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt: [ TestTable, StreamArn ]
+
+resources: ${file(resources.yml)}
