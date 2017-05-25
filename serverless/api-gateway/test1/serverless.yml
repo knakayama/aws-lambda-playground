@@ -1,14 +1,22 @@
-service: aws-python-test1
+frameworkVersion: ">=1.1.0 <2.0.0"
+
+service: api-gateway-test1
 
 provider:
   name: aws
-  runtime: python2.7
-  stage: ${opt:stage}
+  runtime: nodejs6.10
+  stage: v0
   region: ap-northeast-1
   cfLogs: true
 
+package:
+  include:
+    - src/handlers/*/**
+  exclude:
+    - "**"
+
 functions:
   index:
-    handler: handler.hello
+    handler: src/handlers/func1/index.handler
     events:
       - http: GET hello
