@@ -5,8 +5,11 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "sls deploy -v",
-    "remove": "sls remove -v"
+    "deploy": "$(npm bin)/sls deploy -v -r $region",
+    "deploy:function": "$(npm bin)/sls deploy function -v -f $function_name",
+    "remove": "$(npm bin)/sls remove -v",
+    "invoke": "$(npm bin)/sls invoke -v -f $function_name",
+    "logs": "$(npm bin)/sls logs -v -t -f $function_name"
   },
   "author": "knakayama <knakayama.sh@gmail.com>",
   "license": "MIT",

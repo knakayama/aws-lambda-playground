@@ -1,29 +1,28 @@
-'use strict';
-
 const AWS = require('aws-sdk');
+
 const documentClient = new AWS.DynamoDB.DocumentClient();
 
 module.exports.scan = (event, context, callback) => {
-  let params = {
+  const params = {
     TableName: process.env.TableName
   };
 
-  documentClient.scan(params, (err, data) => {
-    if (err) {
-      console.log(err)
-      callback(err);
-    } else {
+  documentClient.scan(params).promise()
+    .then((data) => {
       console.log(data);
       callback(null, data);
-    }
-  });
+    })
+    .catch((err) => {
+      console.log(err);
+      callback(err);
+    })
 };
 
 module.exports.put = (event, context, callback) => {
   const moment = require('moment-timezone');
-  let jst = moment().tz('Asia/Tokyo');
+  const jst = moment().tz('Asia/Tokyo');
 
-  let params = {
+  const params = {
     TableName: process.env.TableName,
     Item: {
       ttl: jst.unix(),
@@ -31,13 +30,13 @@ module.exports.put = (event, context, callback) => {
     }
   };
 
-  documentClient.put(params, (err, data) => {
-    if (err) {
-      console.log(err)
-      callback(err);
-    } else {
+  documentClient.put(params).promise()
+    .then((data) => {
       console.log(data);
       callback(null, data);
-    }
-  });
+    })
+    .catch((err) => {
+      console.log(err)
+      callback(err);
+    })
 };

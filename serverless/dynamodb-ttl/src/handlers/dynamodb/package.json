@@ -8,7 +8,9 @@
   },
   "author": "knakayama <knakayama.sh@gmail.com>",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "moment": "^2.18.1"
+  },
   "devDependencies": {
     "moment-timezone": "^0.5.13"
   }

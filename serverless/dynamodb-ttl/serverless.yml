@@ -1,12 +1,13 @@
+frameworkVersion: ">=1.12.1 <2.0.0"
+
 service: dynamodb-ttl
+
 custom:
   config: ${file(config.yml)}
   dynamodb:
     ttl:
       - table: ${self:custom.config.tableName}
         field: ttl
-
-frameworkVersion: ">=1.12.1 <2.0.0"
 
 provider:
   name: aws
@@ -27,8 +28,7 @@ plugins:
 
 package:
   include:
-    - src/handlers/*/*
-    - src/handlers/*/lib/**
+    - src/handlers/**
   exclude:
     - "**"
 
