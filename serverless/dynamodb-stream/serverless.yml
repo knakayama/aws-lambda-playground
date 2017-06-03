@@ -1,8 +1,9 @@
+frameworkVersion: ">=1.12.1 <2.0.0"
+
 service: dynamodb-stream
+
 custom:
   config: ${file(config.yml)}
-
-frameworkVersion: ">=1.12.1 <2.0.0"
 
 provider:
   name: aws
@@ -12,9 +13,7 @@ provider:
   cfLogs: true
 
 package:
-  include:
-    - src/handlers/*/*
-    - src/handlers/*/lib/**
+  individually: true
   exclude:
     - "**"
 
@@ -27,9 +26,17 @@ functions:
         Ref: TestTable
     events:
       - schedule: rate(1 minute)
+    package:
+      include:
+        - src/handlers/put/index.js
+        - src/handlers/put/lib/*
   stream:
     handler: src/handlers/stream/index.handler
     role: LambdaStreamRole
+    package:
+      include:
+        - src/handlers/stream/index.js
+        - src/handlers/stream/lib/*
     events:
       - stream:
           type: dynamodb

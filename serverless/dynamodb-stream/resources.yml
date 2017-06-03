@@ -1,16 +1,25 @@
 Resources:
+  PutLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: ${self:custom.config.retentionInDays}
+  StreamLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: ${self:custom.config.retentionInDays}
+
   TestTable:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        - AttributeName: StorageName
-          AttributeType: S
-        - AttributeName: DataName
+        - AttributeName: DeviceId
+          AttributeType: N
+        - AttributeName: ISOString
           AttributeType: S
       KeySchema:
-        - AttributeName: StorageName
+        - AttributeName: DeviceId
           KeyType: HASH
-        - AttributeName: DataName
+        - AttributeName: ISOString
           KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 1
@@ -81,15 +90,6 @@ Resources:
                 Resource:
                   - Fn::Join: [ "", [ "arn:aws:dynamodb:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":", "table/", Ref: TestTable, "/stream/*" ] ]
 
-
-  PutLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: ${self:custom.config.retentionInDays}
-  StreamLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: ${self:custom.config.retentionInDays}
 
 Outputs:
   TableName:
