@@ -32,8 +32,7 @@ functions:
         Ref: TestTable
     package:
       include:
-        - src/handlers/scan/index.js
-        - src/handlers/scan/lib/*
+        - src/handlers/scan/*.js
   put:
     handler: src/handlers/put/index.handler
     environment:
@@ -41,8 +40,7 @@ functions:
         Ref: TestTable
     package:
       include:
-        - src/handlers/put/index.js
-        - src/handlers/put/lib/*
+        - src/handlers/put/*.js
         - src/handlers/put/node_modules/uuid/**
   get:
     handler: src/handlers/get/index.handler
@@ -51,24 +49,6 @@ functions:
         Ref: TestTable
     package:
       include:
-        - src/handlers/get/index.js
-        - src/handlers/get/lib/*
+        - src/handlers/get/*.js
 
-resources:
-  Resources:
-    TestTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: Artist
-            AttributeType: S
-          - AttributeName: SongTitle
-            AttributeType: S
-        KeySchema:
-          - AttributeName: Artist
-            KeyType: HASH
-          - AttributeName: SongTitle
-            KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
+resources: ${file(resources.yml)}

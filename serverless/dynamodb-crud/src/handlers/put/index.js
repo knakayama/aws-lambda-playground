@@ -1,6 +1,5 @@
-const Put = require('./lib/put.class');
+const Put = require('./put');
 
 module.exports.handler = (event, context, callback, awsConfig = {}) => {
-  const put = new Put(event, context, callback, awsConfig);
-  put.dynamoDBPut();
+  new Put(event, context, callback, awsConfig).dynamoDBPut();
 };

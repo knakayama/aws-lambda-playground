@@ -1,6 +1,5 @@
-const Get = require('./lib/get.class');
+const Get = require('./get');
 
 module.exports.handler = (event, context, callback, awsConfig = {}) => {
-  const get = new Get(event, context, callback, awsConfig);
-  get.dynamoDBGet();
+  new Get(event, context, callback, awsConfig).dynamoDBGet();
 };

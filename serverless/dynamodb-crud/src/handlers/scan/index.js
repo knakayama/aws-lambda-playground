@@ -1,6 +1,5 @@
-const Scan = require('./lib/scan.class');
+const Scan = require('./scan');
 
 module.exports.handler = (event, context, callback, awsConfig = {}) => {
-  const scan = new Scan(event, context, callback, awsConfig);
-  scan.dynamoDBScan();
+  new Scan(event, context, callback, awsConfig).dynamoDBScan();
 };

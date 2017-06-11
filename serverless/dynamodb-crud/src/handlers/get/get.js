@@ -16,7 +16,7 @@ class Get {
       // should be partition key or partition key and sort key
       Key: {
         Artist: this.dt.getMinutes() % 2 === 1 ? 'Bob' : 'Smith',
-        SongTitle: '4723ed6e-b1d5-4e85-a1fc-5be6a1726a72',
+        SongTitle: '9f50e4b2-61c4-47b1-88d0-51690fd2e0b3',
       },
       // list attributes to return
       //AttributesToGet: [

@@ -19,6 +19,7 @@ class Put {
         Artist: this.dt.getMinutes() % 2 === 1 ? 'Bob' : 'Smith',
         SongTitle: uuid(),
       },
+      ConditionExpression: 'attribute_not_exists(Artist)'
     };
 
     this.documentClient.put(params).promise()

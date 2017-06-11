@@ -20,7 +20,5 @@
     "eslint-plugin-react": "^7.0.1",
     "serverless": "^1.14.0"
   },
-  "dependencies": {
-    "aws-sdk": "^2.62.0"
-  }
+  "dependencies": {}
 }
