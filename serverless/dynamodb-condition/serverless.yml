@@ -1,0 +1,57 @@
+frameworkVersion: ">=1.14.0 <2.0.0"
+
+service: dynamodb-condition
+
+custom:
+  config: ${file(config.yml)}
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  cfLogs: true
+  iamRoleStatements:
+    - Sid: DynamoDBAccess
+      Effect: Allow
+      Resource:
+        - Fn::Join: [ "", [ "arn:aws:dynamodb:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":", "table/", Ref: TestTable ] ]
+      Action:
+        - dynamodb:*
+
+package:
+  individually: true
+  exclude:
+    - "**"
+
+functions:
+  scan:
+    handler: src/handlers/scan/index.handler
+    environment:
+      TABLE_NAME:
+        Ref: TestTable
+    package:
+      include:
+        - src/handlers/scan/*.js
+  put:
+    handler: src/handlers/put/index.handler
+    environment:
+      TABLE_NAME:
+        Ref: TestTable
+    package:
+      include:
+        - src/handlers/put/*.js
+        - src/handlers/put/node_modules/**
+  stream:
+    handler: src/handlers/stream/index.handler
+    role: LambdaStreamRole
+    package:
+      include:
+        - src/handlers/stream/*.js
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt: [ TestTable, StreamArn ]
+
+resources: ${file(resources.yml)}
