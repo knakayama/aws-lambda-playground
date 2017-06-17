@@ -1,0 +1,11 @@
+{
+  "name": "custom-domain",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "serverless": "^1.15.3",
+    "serverless-plugin-custom-domain": "^1.0.0"
+  }
+}
