@@ -1,0 +1,29 @@
+service: stage-variables
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev
+  region: ap-northeast-1
+
+custom:
+  stageVariables:
+    bucket_name:
+      Ref: Bucket
+    foo: bar
+
+plugins:
+  - serverless-plugin-stage-variables
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: /
+          method: get
+
+resources:
+  Resources:
+    Bucket:
+      Type: AWS::S3::Bucket

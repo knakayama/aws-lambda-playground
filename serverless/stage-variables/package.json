@@ -1,0 +1,11 @@
+{
+  "name": "stage-variables",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "serverless": "^1.15.3",
+    "serverless-plugin-stage-variables": "^1.7.8"
+  }
+}
