@@ -1,0 +1,42 @@
+frameworkVersion: ">=1.13.2 <2.0.0"
+
+service: stack-output-demo
+
+custom:
+  config: ${file(config.yml)}
+  output:
+    handler: src/handlers/output/index.handler
+    file: .build/stack.yml
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ap-northeast-1
+  cfLogs: true
+  memorySize: 128
+  timeout: 3
+
+plugins:
+  - serverless-stack-output
+
+package:
+  individually: true
+  exclude:
+    - "**"
+
+functions:
+  func:
+    handler: src/handlers/func/index.handler
+    package:
+      include:
+        - src/handlers/func/**
+
+resources:
+  Resources:
+    Topic:
+      Type: AWS::SNS::Topic
+  Outputs:
+    TopicArn:
+      Value:
+        Ref: Topic
