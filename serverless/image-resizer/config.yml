@@ -1,0 +1,5 @@
+stage: v1
+logGroup:
+  retentionInDays: 90
+s3:
+  bucketName: image-resize-test-bucket

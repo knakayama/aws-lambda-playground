@@ -1,0 +1,42 @@
+{
+  "name": "image-resizer",
+  "version": "0.0.1",
+  "description": "image-resizer",
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "for handler in src/handlers/*; do (cd $handler && pwd && yarn); done",
+    "lint": "$(yarn bin)/eslint src/handlers/*/*.js",
+    "format": "$(yarn bin)/prettier-eslint --write src/handlers/*/*.js",
+    "test": "$(yarn bin)/mocha src/handlers/*/test/*.js",
+    "pretest": "yarn lint",
+    "deploy": "$(yarn bin)/sls deploy -v",
+    "deploy:function": "$(yarn bin)/sls deploy function -v -f resizer",
+    "logs": "$(yarn bin)/sls logs -t -f resizer",
+    "invoke": "$(yarn bin)/sls invoke -l -f resizer -p event.json",
+    "remove": "$(yarn bin)/sls remove -v",
+    "package": "$(yarn bin)/sls package -v",
+    "sync": "$(yarn bin)/sls sync"
+  },
+  "pre-commit": [
+    "lint"
+  ],
+  "devDependencies": {
+    "babel-eslint": "^7.2.3",
+    "chai": "^4.1.0",
+    "eslint": "^3.19.0",
+    "eslint-config-airbnb": "^15.0.1",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^5.0.3",
+    "eslint-plugin-react": "^7.0.1",
+    "mocha": "^3.4.2",
+    "pre-commit": "^1.2.2",
+    "prettier-eslint": "^6.2.3",
+    "prettier-eslint-cli": "^4.0.2"
+  },
+  "dependencies": {
+    "serverless": "^1.18.0",
+    "serverless-apigw-binary": "^0.3.5",
+    "serverless-s3bucket-sync": "^0.1.5"
+  }
+}

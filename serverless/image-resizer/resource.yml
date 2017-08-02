@@ -1,0 +1,36 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Image Resizer
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: ${self:custom.config.s3.bucketName}
+  LogGroupRetentionInDays:
+    Type: Number
+    Default: ${self:custom.config.logGroup.retentionInDays}
+
+Resources:
+  ResizerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: LogGroupRetentionInDays
+
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: S3BucketName
+  #BucketPolicy:
+  #  Type: AWS::S3::BucketPolicy
+  #  Properties:
+  #    Bucket:
+  #      Ref: Bucket
+  #    PolicyDocument:
+  #      Statement:
+  #        - Effect: Allow
+  #          Action: s3:GetObject
+  #          Resource:
+  #            Fn::Join: [ "", [ "arn:aws:s3:::", Ref: Bucket, "/*" ] ]
+  #          Principal: "*"

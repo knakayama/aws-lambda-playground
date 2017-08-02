@@ -1,0 +1,62 @@
+service: image-resizer
+
+frameworkVersion: ">=1.18.1 <2.0.0"
+
+custom:
+  config: ${file(config.yml)}
+  s3-sync:
+    - folder: images
+      bucket: ${self:custom.config.s3.bucketName}
+  apigwBinary:
+    types:
+      - 'image/png'
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ap-northeast-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource: "arn:aws:s3:::${self:custom.config.s3.bucketName}/*"
+
+plugins:
+  - serverless-s3bucket-sync
+  - serverless-apigw-binary
+
+package:
+  individually: true
+  exclude:
+    - "**"
+
+functions:
+  resizer:
+    handler: src/handlers/resizer/index.handler
+    memorySize: 128
+    timeout: 60
+    environment:
+      BUCKET_NAME: ${self:custom.config.s3.bucketName}
+    package:
+      include:
+        - src/handlers/resizer/*.js
+    events:
+      - http:
+          path: /{filename+}
+          method: get
+          integration: lambda
+          request:
+            parameters:
+              querystrings:
+                w: false
+            template:
+              image/png: |
+                {
+                  "w": "$input.params('w')",
+                  "filename": "$input.params('filename')"
+                }
+            passThrough: WHEN_NO_TEMPLATES
+          cors: true
+
+resources: ${file(resource.yml)}
