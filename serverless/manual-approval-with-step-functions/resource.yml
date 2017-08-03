@@ -1,0 +1,56 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Sample
+
+Parameters:
+  LogGroupRetentionInDays:
+    Type: Number
+    Default: ${self:custom.config.logGroup.retentionInDays}
+
+Resources:
+  FuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: LogGroupRetentionInDays
+
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: StepFunctionsAPI
+  ApiGatewayMethodFailGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      Integration:
+        Uri:
+          Fn::Join: [ "", [ "arn:aws:apigateway:", Ref: "AWS::Region", ":states:action/SendTaskFailure" ] ]
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: |
+            {
+               "cause": "Reject link was clicked.",
+               "error": "Rejected",
+               "taskToken": "$input.params('taskToken')"
+            }
+      RequestParameters:
+        method.request.querystring.taskToken: false
+  ApiGatewayMethodSucceedGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      Integration:
+        Uri:
+          Fn::Join: [ "", [ "arn:aws:apigateway:", Ref: "AWS::Region", ":states:action/SendTaskSuccess" ] ]
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: |
+            {
+               "output": "\"Approve link was clicked.\"",
+               "taskToken": "$input.params('taskToken')"
+            }
+      RequestParameters:
+        method.request.querystring.taskToken: false
+  ApigatewayToStepFunctionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSStepFunctionsFullAccess

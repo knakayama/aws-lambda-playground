@@ -1,0 +1,68 @@
+service: manula-approval-with-step-functions
+
+frameworkVersion: ">=1.18.1 <2.0.0"
+
+custom:
+  config: ${file(config.yml)}
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: ap-northeast-1
+  memorySize: 128
+  timeout: 60
+  iamRoleStatements:
+    - Effect: Allow
+      Action: states:GetActivityTask
+      Resource: "arn:aws:states:#{AWS::Region}:#{AWS::AccountId}:activity:${self:custom.config.stepFunctions.activityName}"
+    - Effect: Allow
+      Action: ses:SendEmail
+      Resource: "*"
+
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-step-functions
+
+package:
+  individually: true
+  exclude:
+    - "**"
+
+functions:
+  func:
+    name: ManualStepActivityWorker
+    handler: src/handlers/func/index.handler
+    environment:
+      ACTIVITY_ARN: "arn:aws:states:#{AWS::Region}:#{AWS::AccountId}:activity:${self:custom.config.stepFunctions.activityName}"
+      SERVICE_ENDPOINT:
+        Fn::Join: [ "", [ "https://", Ref: "ApiGatewayRestApi", ".execute-api.", Ref: "AWS::Region", ".amazonaws.com/${self:custom.config.stage}" ] ]
+    package:
+      include:
+        - src/handlers/func/*.js
+    events:
+      - schedule: rate(1 minute)
+
+stepFunctions:
+  stateMachines:
+    promotionApproval:
+      events:
+        - http:
+            path: fail
+            method: GET
+        - http:
+            path: succeed
+            method: GET
+      definition:
+        Comment: "Employee promotion process!"
+        StartAt: ManualApproval
+        States:
+          ManualApproval:
+            Type: Task
+            Resource: "arn:aws:states:#{AWS::Region}:#{AWS::AccountId}:activity:${self:custom.config.stepFunctions.activityName}"
+            TimeoutSeconds: 3600
+            End: true
+  activities:
+    - ${self:custom.config.stepFunctions.activityName}
+
+resources: ${file(resource.yml)}
