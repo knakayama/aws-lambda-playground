@@ -1,0 +1,54 @@
+service: log-analytics
+
+frameworkVersion: ">=1.19.0 <2.0.0"
+
+custom:
+  config: ${file(config.yml)}
+  s3-sync:
+    - folder: data
+      bucket: ${self:custom.config.s3.bucketName}
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${self:custom.config.stage}
+  region: us-west-2
+  memorySize: 128
+  timeout: 10
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - kinesis:GetRecords
+        - kinesis:GetShardIterator
+        - kinesis:DescribeStream
+      Resource:
+        Fn::GetAtt: [ AggregratedLogDataStream, Arn ]
+    - Effect: Allow
+      Action:
+        - kinesis:ListStreams
+      Resource:
+        Fn::Join: [ "", [ "arn:aws:kinesis:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":stream/*" ] ]
+
+plugins:
+  - serverless-s3bucket-sync
+
+package:
+  individually: true
+  exclude:
+    - "**"
+
+functions:
+  func:
+    handler: src/handlers/func/index.handler
+    events:
+      - stream:
+          type: kinesis
+          arn:
+            Fn::GetAtt: [ AggregratedLogDataStream, Arn ]
+          batchSize: 200
+          startingPosition: TRIM_HORIZON
+    package:
+      include:
+        - src/handlers/func/*.js
+
+resources: ${file(resource.yml)}

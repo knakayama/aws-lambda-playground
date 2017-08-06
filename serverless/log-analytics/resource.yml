@@ -1,0 +1,161 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Serverless Manual Approval Stack
+
+Parameters:
+  LogGroupRetentionInDays:
+    Type: Number
+    Default: ${self:custom.config.logGroup.retentionInDays}
+  S3BucketName:
+    Type: String
+    Default: ${self:custom.config.s3.bucketName}
+
+Resources:
+  FuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: LogGroupRetentionInDays
+
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: S3BucketName
+
+  ApplicationLogInputStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: ApplicationLogInputStream
+      ShardCount: 10
+
+  AggregratedLogDataStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: AggregratedLogDataStream
+      ShardCount: 2
+
+  KinesisAnalyticsAppLogAnalyticsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: kinesisanalytics.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName:
+            Ref: AWS::StackName
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+
+  LogAnalyticsApplication:
+    Type: AWS::KinesisAnalytics::Application
+    Properties:
+      ApplicationName: LogAnalytics
+      ApplicationDescription: "Analyze Streaming Logs"
+      ApplicationCode: |
+        -- Create the destination stream that stores the response count as per the source application.
+        -- This will help you determine request count per source.
+        -- It also helps you determine if data is coming from unknown sources.
+        CREATE STREAM "DESTINATION_SQL_STREAM" (
+        applicationName VARCHAR(64),contact VARCHAR(64),
+        response  SMALLINT,responseCount SMALLINT);
+
+        -- Aggregrate response over joined data with host application mapping stored on S3.
+        -- It always uses the latest S3 file
+        CREATE OR REPLACE PUMP "DESTINATION_SQL_STREAM" AS
+        INSERT INTO "DESTINATION_SQL_STREAM"
+            SELECT STREAM  metadata."ApplicationName" , metadata."Contact", logstream."response", COUNT(*) as responseCount
+                          FROM "SOURCE_SQL_STREAM_001" logstream LEFT JOIN "ApplicationHostMapping" metadata
+                          ON logstream."host" = metadata."Host"
+                          GROUP BY metadata."ApplicationName", metadata."Contact", logstream."response", FLOOR((logstream.ROWTIME - TIMESTAMP '1970-01-01 00:00:00') MINUTE / 5 TO MINUTE);
+      Inputs:
+        - NamePrefix: SOURCE_SQL_STREAM
+          InputParallelism:
+            Count: 1
+          InputSchema:
+            RecordColumns:
+              - Name: host
+                SqlType: VARCHAR(16)
+                Mapping: $.host
+              - Name: datetime
+                SqlType: VARCHAR(32)
+                Mapping: $.datetime
+              - Name: request
+                SqlType: VARCHAR(64)
+                Mapping: $.request
+              - Name: response
+                SqlType: SMALLINT
+                Mapping: $.response
+              - Name: bytes
+                SqlType: SMALLINT
+                Mapping: $.bytes
+              - Name: agent
+                SqlType: VARCHAR(128)
+                Mapping: $.agent
+              - Name: referrer
+                SqlType: VARCHAR(32)
+                Mapping: $.referrer
+            RecordEncoding: UTF-8
+            RecordFormat:
+              RecordFormatType: JSON
+              MappingParameters:
+                JSONMappingParameters:
+                  RecordRowPath: $
+          KinesisStreamsInput:
+            ResourceARN:
+              Fn::GetAtt: [ ApplicationLogInputStream, Arn ]
+            RoleARN:
+              Fn::GetAtt: [ KinesisAnalyticsAppLogAnalyticsRole, Arn ]
+
+  LogAnalyticsApplicationReferenceDataSource:
+    Type: AWS::KinesisAnalytics::ApplicationReferenceDataSource
+    Properties:
+      ApplicationName:
+        Ref: LogAnalyticsApplication
+      ReferenceDataSource:
+        TableName: ApplicationHostMapping
+        ReferenceSchema:
+          RecordEncoding: UTF-8
+          RecordColumns:
+            - Name: Host
+              SqlType: VARCHAR(64)
+            - Name: ApplicationName
+              SqlType: VARCHAR(64)
+            - Name: Contact
+              SqlType: VARCHAR(64)
+          RecordFormat:
+            RecordFormatType: CSV
+            MappingParameters:
+              CSVMappingParameters:
+                RecordRowDelimiter: "\n"
+                RecordColumnDelimiter: ","
+        S3ReferenceDataSource:
+          BucketARN:
+            Fn::GetAtt: [ Bucket, Arn ]
+          FileKey: HostApplicationMap.csv
+          ReferenceRoleARN:
+            Fn::GetAtt: [ KinesisAnalyticsAppLogAnalyticsRole, Arn ]
+
+  LogAnalyticsApplicationOutput:
+    Type: AWS::KinesisAnalytics::ApplicationOutput
+    Properties:
+      ApplicationName:
+        Ref: LogAnalyticsApplication
+      Output:
+        Name: DESTINATION_SQL_STREAM
+        DestinationSchema:
+          RecordFormatType: JSON
+        KinesisStreamsOutput:
+          ResourceARN:
+            Fn::GetAtt: [ AggregratedLogDataStream, Arn ]
+          RoleARN:
+            Fn::GetAtt: [ KinesisAnalyticsAppLogAnalyticsRole, Arn ]
