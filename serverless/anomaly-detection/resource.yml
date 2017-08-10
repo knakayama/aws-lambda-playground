@@ -1,0 +1,296 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Serverless Anomaly Detection Stack
+
+Parameters:
+  LogGroupRetentionInDays:
+    Type: Number
+    Default: ${{self:custom.config.logGroup.retentionInDays}}
+  Email:
+    Type: String
+    Default: ${{self:custom.config.sns.email}}
+  StageName:
+    Type: String
+    Default: ${{self:custom.config.stage}}
+
+Resources:
+  FuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: LogGroupRetentionInDays
+
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName:
+            Fn::Join: [ "-", [ Ref: "AWS::StackName", api-gateway-role ] ]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+                - kinesis:PutRecord
+                - kinesis:PutRecords
+              Resource:
+                - Fn::GetAtt: [ KinesisBeaconInputStream, Arn ]
+
+  ClickStreamEvent:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint:
+            Ref: Email
+          Protocol: email
+
+  ApiGatewayBeaconStreamRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: Kinesis Example API Gateway RestAPI
+      Name: BeaconAPI
+
+  ApiGatewayBeaconStreamRootResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: ApiGatewayBeaconStreamRestApi
+      ParentId:
+        Fn::GetAtt: [ ApiGatewayBeaconStreamRestApi, RootResourceId ]
+      PathPart: beacon
+  ApiGatewayBeaconStreamChildResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: ApiGatewayBeaconStreamRestApi
+      ParentId:
+        Ref: ApiGatewayBeaconStreamRootResource
+      PathPart: stream
+
+  ApiGatewayBeaconStreamMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RequestModels:
+        application/json: BeaconRequest
+      RequestParameters:
+        method.request.header.Host: false
+        method.request.querystring.browseraction: false
+      AuthorizationType: NONE
+      ResourceId:
+        Ref: ApiGatewayBeaconStreamChildResource
+      RestApiId:
+        Ref: ApiGatewayBeaconStreamRestApi
+      Integration:
+        Credentials:
+          Fn::GetAtt: [ ApiGatewayRole, Arn ]
+        RequestParameters:
+          integration.request.querystring.browseraction: method.request.querystring.browseraction
+          integration.request.header.Host: method.request.header.Host
+        PassthroughBehavior: WHEN_NO_MATCH
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Join: [ "", [ "arn:aws:apigateway:", Ref: "AWS::Region", ":kinesis:action/PutRecord" ] ]
+        RequestTemplates:
+          application/json:
+            Fn::Sub: |
+              #set($inputRoot = $input.path('$'))
+              {
+                "Data": "$util.base64Encode("{ ""browseraction"" : ""$input.params('browseraction')"", ""site"" : ""$input.params('Host')"" }")",
+                "PartitionKey" : "shardId-000000000",
+                "StreamName" : "${KinesisBeaconInputStream}"
+              }
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters: {}
+            ResponseTemplates: {}
+        Type: AWS
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+          ResponseParameters: {}
+
+  ApiGatewayBeaconStreamModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      Name: BeaconRequest
+      RestApiId:
+        Ref: ApiGatewayBeaconStreamRestApi
+      ContentType: application/json
+      Description: "Sample incoming request from client"
+      Schema: |
+        {
+          "type" : "object",
+          "properties" : {
+            "browseraction" : {
+              "type" : "string",
+              "description" : "Querystring variable"
+            },
+            "Host" : {
+              "type" : "string",
+              "description" : "Header variable"
+            }
+          },
+          "description" : "Sample incoming request from client"
+        }
+
+  __ApiGatewayDeployment__:
+    DependsOn:
+      - ApiGatewayBeaconStreamMethod
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      Description: "Click Stream Example deployment"
+      RestApiId:
+        Ref: ApiGatewayBeaconStreamRestApi
+      StageName:
+        Ref: StageName
+
+  KinesisBeaconInputStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+
+  KinesisBeaconOutputStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+
+  KinesisAnalyticsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - kinesisanalytics.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName:
+            Fn::Join: [ "-", [ Ref: "AWS::StackName", kinesis-analytis-role ] ]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:GetShardIterator
+                  - kinesis:GetRecords
+                Resource:
+                  - Fn::GetAtt: [ KinesisBeaconInputStream, Arn ]
+              - Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:PutRecord
+                  - kinesis:PutRecords
+                Resource:
+                  - Fn::GetAtt: [ KinesisBeaconOutputStream, Arn ]
+
+  KinesisAnomalyApplication:
+    Type: AWS::KinesisAnalytics::Application
+    Properties:
+      ApplicationName: KineisAnalyticsAnomalyApplication
+      ApplicationDescription: Kineis Analytics Anomaly Application
+      ApplicationCode: |
+        CREATE OR REPLACE STREAM "CLICKSTREAM" (
+           "CLICKCOUNT" DOUBLE
+        );
+
+        CREATE OR REPLACE PUMP "CLICKPUMP" AS
+        INSERT INTO "CLICKSTREAM" ("CLICKCOUNT")
+        SELECT STREAM COUNT(*)
+        FROM "SOURCE_SQL_STREAM_001"
+        WHERE "browseraction" = 'Click'
+        GROUP BY FLOOR(
+          ("SOURCE_SQL_STREAM_001".ROWTIME - TIMESTAMP '1970-01-01 00:00:00')
+            SECOND / 10 TO SECOND
+        );
+
+        CREATE OR REPLACE STREAM "IMPRESSIONSTREAM" (
+           "IMPRESSIONCOUNT" DOUBLE
+        );
+
+        CREATE OR REPLACE PUMP "IMPRESSIONPUMP" AS
+        INSERT INTO "IMPRESSIONSTREAM" ("IMPRESSIONCOUNT")
+        SELECT STREAM COUNT(*)
+        FROM "SOURCE_SQL_STREAM_001"
+        WHERE "browseraction" = 'Impression'
+        GROUP BY FLOOR(
+          ("SOURCE_SQL_STREAM_001".ROWTIME - TIMESTAMP '1970-01-01 00:00:00')
+            SECOND / 10 TO SECOND
+        );
+
+        CREATE OR REPLACE STREAM "CTRSTREAM" (
+          "CTR" DOUBLE
+        );
+
+        CREATE OR REPLACE PUMP "CTRPUMP" AS
+        INSERT INTO "CTRSTREAM" ("CTR")
+        SELECT STREAM "CLICKCOUNT" / "IMPRESSIONCOUNT" * 100.000 as "CTR"
+        FROM "IMPRESSIONSTREAM",
+          "CLICKSTREAM"
+        WHERE "IMPRESSIONSTREAM".ROWTIME = "CLICKSTREAM".ROWTIME;
+
+        CREATE OR REPLACE STREAM "DESTINATION_SQL_STREAM" (
+            "CTRPERCENT" DOUBLE,
+            "ANOMALY_SCORE" DOUBLE
+        );
+
+        CREATE OR REPLACE PUMP "OUTPUT_PUMP" AS
+        INSERT INTO "DESTINATION_SQL_STREAM"
+        SELECT STREAM * FROM
+        TABLE (RANDOM_CUT_FOREST(
+                     CURSOR(SELECT STREAM "CTR" FROM "CTRSTREAM"), --inputStream
+                     100, --numberOfTrees (default)
+                     12, --subSampleSize
+                     100000, --timeDecay (default)
+                     1) --shingleSize (default)
+        )
+        WHERE ANOMALY_SCORE > 2;
+      Inputs:
+        - NamePrefix: SOURCE_SQL_STREAM
+          InputSchema:
+            RecordColumns:
+              - Name: browseraction
+                SqlType: VARCHAR(16)
+                Mapping: $.browseraction
+              - Name: site
+                SqlType: VARCHAR(64)
+                Mapping: $.site
+            RecordFormat:
+              RecordFormatType: JSON
+              MappingParameters:
+                JSONMappingParameters:
+                  RecordRowPath: $
+          KinesisStreamsInput:
+            ResourceARN:
+              Fn::GetAtt: [ KinesisBeaconInputStream, Arn ]
+            RoleARN:
+              Fn::GetAtt: [ KinesisAnalyticsRole, Arn ]
+
+  KinesisAnomalyApplicationOutput:
+    Type: AWS::KinesisAnalytics::ApplicationOutput
+    Properties:
+      ApplicationName:
+        Ref: KinesisAnomalyApplication
+      Output:
+        Name: DESTINATION_SQL_STREAM
+        DestinationSchema:
+          RecordFormatType: CSV
+        KinesisStreamsOutput:
+          ResourceARN:
+            Fn::GetAtt: [ KinesisBeaconOutputStream, Arn ]
+          RoleARN:
+            Fn::GetAtt: [ KinesisAnalyticsRole, Arn ]
