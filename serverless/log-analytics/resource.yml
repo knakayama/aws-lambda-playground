@@ -48,13 +48,26 @@ Resources:
       Path: /
       Policies:
         - PolicyName:
-            Ref: AWS::StackName
+            Fn::Join: [ "-", [ kinesis-analytics-policy, Ref: "AWS::StackName" ] ]
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: 2012-10-17
             Statement:
               - Effect: Allow
-                Action: "*"
-                Resource: "*"
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:GetShardIterator
+                  - kinesis:GetRecords
+                Resource:
+                  Fn::GetAtt: [ ApplicationLogInputStream, Arn ]
+              - Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:PutRecord
+                  - kinesis:PutRecords
+                Resource:
+                  Fn::GetAtt: [ AggregratedLogDataStream, Arn ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
   LogAnalyticsApplication:
     Type: AWS::KinesisAnalytics::Application
