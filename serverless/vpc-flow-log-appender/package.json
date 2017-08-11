@@ -1,0 +1,38 @@
+{
+  "name": "vpc-flow-log-appender",
+  "version": "0.27.5",
+  "description": "Deploy VPC flow log appender with serverless framework",
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "lint": "$(yarn bin)/eslint src/handlers/*/*.js",
+    "format": "$(yarn bin)/prettier-eslint --write src/handlers/*/*.js",
+    "test": "$(yarn bin)/mocha src/handlers/*/test/*.js",
+    "pretest": "yarn lint",
+    "deploy": "$(yarn bin)/sls deploy -v",
+    "deploy:function": "$(yarn bin)/sls deploy function -v -f func",
+    "logs": "$(yarn bin)/sls logs -t -f func",
+    "invoke": "$(yarn bin)/sls invoke -l -f func",
+    "remove": "$(yarn bin)/sls remove -v",
+    "package": "$(yarn bin)/sls package -v"
+  },
+  "pre-commit": [
+    "lint"
+  ],
+  "devDependencies": {
+    "babel-eslint": "^7.2.3",
+    "chai": "^4.1.0",
+    "eslint": "^3.19.0",
+    "eslint-config-airbnb": "^15.0.1",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^5.0.3",
+    "eslint-plugin-react": "^7.0.1",
+    "mocha": "^3.4.2",
+    "pre-commit": "^1.2.2",
+    "prettier-eslint": "^6.2.3",
+    "prettier-eslint-cli": "^4.0.2"
+  },
+  "dependencies": {
+    "serverless": "^1.19.0"
+  }
+}
