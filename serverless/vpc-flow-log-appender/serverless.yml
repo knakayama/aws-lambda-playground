@@ -1,0 +1,57 @@
+service: vpc-flow-log-appender
+
+frameworkVersion: ">=1.19.0 <2.0.0"
+
+custom:
+  config: ${{file(config.yml)}}
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${{self:custom.config.stage}}
+  region: us-west-2
+  memorySize: 128
+  timeout: 5
+  variableSyntax: "\\${{([ :a-zA-Z0-9._,\\-\\/\\(\\)]+?)}}"
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - firehose:PutRecordBatch
+      Resource:
+        Fn::Sub: arn:aws:firehose:${AWS::Region}:${AWS::AccountId}:deliverystream/${KinesisFirehose}
+    - Effect: Allow
+      Action:
+        - ec2:Describe*
+        - elasticloadbalancing:Describe*
+        - cloudwatch:ListMetrics
+        - cloudwatch:GetMetricStatistics
+        - cloudwatch:Describe*
+        - autoscaling:Describe*
+      Resource: "*"
+
+package:
+  individually: true
+  exclude:
+    - "**"
+
+functions:
+  ingestor:
+    handler: src/handlers/ingestor/index.handler
+    environment:
+      DELIVERY_STREAM_NAME:
+        Ref: KinesisFirehose
+    events:
+      - cloudwatchLog:
+          logGroup: /aws/vpc/FlowLogs
+          filter: '[version, account_id, interface_id, srcaddr != \"-\", dstaddr != \"-\", srcport != \"-\", dstport != \"-\", protocol, packets, bytes, start, end, action, log_status]'
+    package:
+      include:
+        - src/handlers/ingestor/*.js
+  decorator:
+    handler: src/handlers/decorator/index.handler
+    package:
+      include:
+        - src/handlers/decorator/*.js
+        - src/handlers/decorator/node_modules/**
+
+resources: ${{file(resource.yml)}}

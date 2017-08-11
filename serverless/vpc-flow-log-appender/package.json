@@ -5,6 +5,7 @@
   "author": "knakayama <knakayama.sh@gmail.com>",
   "license": "MIT",
   "scripts": {
+    "postinstall": "for handler in src/handlers/*; do (cd $handler && pwd && yarn); done",
     "lint": "$(yarn bin)/eslint src/handlers/*/*.js",
     "format": "$(yarn bin)/prettier-eslint --write src/handlers/*/*.js",
     "test": "$(yarn bin)/mocha src/handlers/*/test/*.js",

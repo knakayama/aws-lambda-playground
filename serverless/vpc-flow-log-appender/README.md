@@ -1,0 +1,1 @@
+https://aws.amazon.com/jp/blogs/security/how-to-visualize-and-refine-your-networks-security-by-adding-security-group-ids-to-your-vpc-flow-logs/?sc_channel=sm&sc_campaign=PAC_Social&sc_publisher=TWITTER&sc_country=Global&sc_geo=GLOBAL&sc_outcome=adoption&s

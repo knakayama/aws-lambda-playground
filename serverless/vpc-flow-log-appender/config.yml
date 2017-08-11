@@ -1,0 +1,4 @@
+stage: v1
+logGroup:
+  retentionInDays: 90
+  filter: '[version, account_id, interface_id, srcaddr != "-", dstaddr != "-", srcport != "-", dstport != "-", protocol, packets, bytes, start, end, action, log_status]'

@@ -1,0 +1,355 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Serverless VPC flow log appender Stack
+
+Parameters:
+  LogGroupRetentionInDays:
+    Type: Number
+    Default: ${{self:custom.config.logGroup.retentionInDays}}
+
+Resources:
+  FuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: LogGroupRetentionInDays
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: VPC
+      InternetGatewayId:
+        Ref: InternetGateway
+  FrontendRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+  FrontendRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId:
+        Ref: FrontendRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+  ApplicationRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+  ApplicationRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId:
+        Ref: ApplicationRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+  DatastoreRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+  FrontendSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs:
+              Ref: AWS::Region
+      CidrBlock: 192.168.0.0/24
+  FrontendSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: FrontendSubnet1
+      RouteTableId:
+        Ref: FrontendRouteTable
+  FrontendSubnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs:
+              Ref: AWS::Region
+      CidrBlock: 192.168.1.0/24
+  FrontendSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: FrontendSubnet2
+      RouteTableId:
+        Ref: FrontendRouteTable
+  ApplicationSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs:
+              Ref: AWS::Region
+      CidrBlock: 192.168.100.0/24
+  ApplicationSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: FrontendSubnet1
+      RouteTableId:
+        Ref: FrontendRouteTable
+  ApplicationSubnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs:
+              Ref: AWS::Region
+      CidrBlock: 192.168.101.0/24
+  ApplicationSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: ApplicationSubnet2
+      RouteTableId:
+        Ref: ApplicationRouteTable
+  DatastoreSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs:
+              Ref: AWS::Region
+      CidrBlock: 192.168.200.0/24
+  DatastoreSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: DatastoreSubnet1
+      RouteTableId:
+        Ref: DatastoreRouteTable
+  DatastoreSubnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs:
+              Ref: AWS::Region
+      CidrBlock: 192.168.201.0/24
+  DatastoreSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: DatastoreSubnet2
+      RouteTableId:
+        Ref: DatastoreRouteTable
+
+  VPCFlowLogRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - vpc-flow-logs.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName:
+            Fn::Sub: ${AWS::StackName}-vpc-flow-log-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  VPCFlowLogLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/vpc/FlowLogs
+
+  VPCFlowLog:
+    Type: AWS::EC2::FlowLog
+    Properties:
+      LogGroupName:
+        Ref: VPCFlowLogLogGroup
+      ResourceId:
+        Ref: VPC
+      ResourceType: VPC
+      TrafficType: ALL
+      DeliverLogsPermissionArn:
+        Fn::GetAtt: [ VPCFlowLogRole, Arn ]
+
+  ElasticsearchDomain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      DomainName: es-flowlogs
+      ElasticsearchVersion: 5.3
+      ElasticsearchClusterConfig:
+        InstanceCount: 2
+        ZoneAwarenessEnabled: true
+        DedicatedMasterEnabled: false
+        InstanceType: t2.small.elasticsearch
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+        VolumeType: gp2
+      AccessPolicies:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                Fn::GetAtt: [ KinesisFirehoseRole, Arn ]
+            Action:
+              - es:*
+            Resource:
+              Fn::Sub: arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*/*
+      AdvancedOptions:
+        rest.action.multi.allow_explicit_index: true
+
+  Bucket:
+    Type: AWS::S3::Bucket
+
+  KinesisFirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              - firehose.amazonaws.com
+          Action:
+            - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName:
+            Fn::Sub: ${AWS::StackName}-vpc-flow-log-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                  - lambda:GetFunctionConfiguration
+                  - es:*
+                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+
+  KinesisFirehoseS3LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/firehose/kinesis-firehose-s3-${AWS::StackName}
+
+  KinesisFirehoseS3LogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName:
+        Ref: KinesisFirehoseS3LogGroup
+      LogStreamName:
+        Fn::Sub: s3-${AWS::StackName}
+
+  KinesisFirehoseESLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/firehose/kinesis-firehose-es-${AWS::StackName}
+
+  KinesisFirehoseESLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName:
+        Ref: KinesisFirehoseESLogGroup
+      LogStreamName:
+        Fn::Sub: es-${AWS::StackName}
+
+  KinesisFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      #DeliveryStreamName: VPCFlowLogsToElasticSearch
+      ElasticsearchDestinationConfiguration:
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 50
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName:
+            Ref: KinesisFirehoseESLogGroup
+          LogStreamName:
+            Ref: KinesisFirehoseESLogStream
+        DomainARN:
+          Fn::GetAtt: [ ElasticsearchDomain, DomainArn ]
+        IndexName: cwl
+        IndexRotationPeriod: OneDay
+        TypeName: log
+        RetryOptions:
+          DurationInSeconds: 60
+        RoleARN:
+          Fn::GetAtt: [ KinesisFirehoseRole, Arn ]
+        S3BackupMode: FailedDocumentsOnly
+        S3Configuration:
+          BucketARN:
+            Fn::GetAtt: [ Bucket, Arn ]
+          BufferingHints:
+            IntervalInSeconds: 60
+            SizeInMBs: 50
+          CompressionFormat: UNCOMPRESSED
+          Prefix: firehose/
+          RoleARN:
+            Fn::GetAtt: [ KinesisFirehoseRole, Arn ]
+          CloudWatchLoggingOptions:
+            Enabled: true
+            LogGroupName:
+              Ref: KinesisFirehoseS3LogGroup
+            LogStreamName:
+              Ref: KinesisFirehoseS3LogStream
