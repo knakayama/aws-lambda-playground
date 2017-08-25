@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A simple Hello World Serverless project
+Resources:
+  HelloWorld:
+    Properties:
+      CodeUri: s3://knakayama-bucket/87dbb8f0e496e4764c534ee66734de1b
+      Handler: index.handler
+      Runtime: nodejs6.10
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
