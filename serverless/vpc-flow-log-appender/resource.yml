@@ -336,6 +336,16 @@ Resources:
           DurationInSeconds: 60
         RoleARN:
           Fn::GetAtt: [ KinesisFirehoseRole, Arn ]
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Type: Lambda
+              Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue:
+                    Fn::Sub: arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${{self:service}}-${{self:custom.config.stage}}-decorator:$LATEST
+                    # Circular dependency
+                    #Fn::GetAtt: [ DecoratorLambdaFunction, Arn ]
         S3BackupMode: FailedDocumentsOnly
         S3Configuration:
           BucketARN:
