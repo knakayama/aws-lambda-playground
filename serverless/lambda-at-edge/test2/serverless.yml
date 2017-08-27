@@ -1,0 +1,39 @@
+service: lambda-at-edge
+
+frameworkVersion: ">=1.20.2 <2.0.0"
+
+custom:
+  config: ${{file(config.yml)}}
+  s3Sync:
+    - bucketName: ${{env:S3_BUCKET_NAME}}
+      localDir: static
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${{self:custom.config.stage}}
+  region: us-east-1
+  memorySize: 128
+  timeout: 1
+  variableSyntax: "\\${{([ :a-zA-Z0-9._,\\-\\/\\(\\)]+?)}}"
+
+package:
+  individually: true
+  exclude:
+    - "**"
+
+plugins:
+  - serverless-s3-sync
+  - serverless-plugin-cloudfront-lambda-edge
+
+functions:
+  rewriter:
+    handler: src/handlers/rewriter/index.handler
+    lambdaAtEdge:
+      distribution: WebsiteDistribution
+      eventType: viewer-request
+    package:
+      include:
+        - src/handlers/rewriter/*.js
+
+resources: ${{file(resources.yml)}}
