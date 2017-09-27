@@ -1,0 +1,37 @@
+service: warrant
+
+frameworkVersion: ">=1.23.0 <2.0.0"
+
+custom:
+  config: ${{file(config.yml)}}
+  pythonRequirements:
+    dockerizePip: true
+
+provider:
+  name: aws
+  runtime: python3.6
+  stage: ${{self:custom.config.stage}}
+  region: ${{self:custom.config.region}}
+  variableSyntax: "\\${{([ :a-zA-Z0-9._,\\-\\/\\(\\)]+?)}}"
+
+package:
+  exclude:
+    - node_modules/**
+
+plugins:
+  - serverless-python-requirements
+
+functions:
+  auth:
+    name: auth
+    description: auth
+    handler: auth.handler
+    memorySize: 128
+    timeout: 3
+    environment:
+      COGNITO_POOL_ID:
+        Ref: CognitoUserPool
+      COGNITO_CLIENT_ID:
+        Ref: CognitoUserPoolClient
+
+resources: ${{file(resources.yml)}}

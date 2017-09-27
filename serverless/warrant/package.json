@@ -1,0 +1,11 @@
+{
+  "name": "warrant",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "serverless": "^1.23.0",
+    "serverless-python-requirements": "^3.0.1"
+  }
+}

@@ -1,0 +1,38 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Warrant Sample Stack
+
+Parameters:
+  RetentionInDays:
+    Type: Number
+    Default: ${{self:custom.config.logGroup.retentionInDays}}
+
+Resources:
+  AuthLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: RetentionInDays
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: false
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId:
+        Ref: CognitoUserPool
