@@ -1,0 +1,108 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: kinesis2firehose Base Stack
+
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+
+  KinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+
+  LambdaFirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: !Sub /${AWS::StackName}/
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonKinesisFullAccess
+
+  LambdaStreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: !Sub /${AWS::StackName}/
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  KinesisFirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - firehose.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: !Sub /${AWS::StackName}/
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+
+  KinesisFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /${AWS::StackName}/kinesis-firehose
+
+  KinesisFirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref KinesisFirehoseLogGroup
+      LogStreamName: kinesis-firehose
+
+Outputs:
+  BucketName:
+    Value: !Ref Bucket
+    Export:
+      Name: !Sub ${AWS::StackName}-BucketName
+  BucketArn:
+    Value: !GetAtt Bucket.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-BucketArn
+  KinesisStreamArn:
+    Value: !GetAtt KinesisStream.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-KinesisStreamArn
+  LambdaFirehoseRoleArn:
+    Value: !GetAtt LambdaFirehoseRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaFirehoseRoleArn
+  LambdaStreamRoleArn:
+    Value: !GetAtt LambdaStreamRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaStreamRoleArn
+  KinesisFirehoseRoleArn:
+    Value: !GetAtt KinesisFirehoseRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-KinesisFirehoseRoleArn
+  KinesisFirehoseLogGroupName:
+    Value: !Ref KinesisFirehoseLogGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-KinesisFirehoseLogGroupName
+  KinesisFirehoseLogStreamName:
+    Value: !Ref KinesisFirehoseLogStream
+    Export:
+      Name: !Sub ${AWS::StackName}-KinesisFirehoseLogStreamName

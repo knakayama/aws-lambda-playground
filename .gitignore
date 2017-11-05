@@ -10,3 +10,5 @@ node_modules/
 .sam/
 vendored/
 tmp/
+.venv/
+.cache/

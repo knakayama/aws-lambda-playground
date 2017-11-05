@@ -1,0 +1,53 @@
+frameworkVersion: ">=1.24.0 <2.0.0"
+
+service: kinesis2firehose
+
+custom:
+  config: ${{file(config.yml)}}
+
+provider:
+  name: aws
+  runtime: python3.6
+  stage: ${{self:custom.config.stage}}
+  region: ${{self:custom.config.region}}
+  variableSyntax: "\\${{([ :a-zA-Z0-9._,\\-\\/\\(\\)]+?)}}"
+  cfLogs: true
+
+package:
+  excludeDevDependencies: false
+  individually: true
+  exclude:
+    - "**"
+
+functions:
+  firehose:
+    handler: src/handlers/firehose/index.handler
+    role:
+      Fn::ImportValue:
+        Fn::Sub: ${AWS::StackName}-base-LambdaFirehoseRoleArn
+    package:
+      include:
+        - src/handlers/firehose/*.py
+
+  stream:
+    handler: src/handlers/stream/index.handler
+    role:
+      Fn::ImportValue:
+        Fn::Sub: ${AWS::StackName}-base-LambdaStreamRoleArn
+    environment:
+      BUCKET_NAME:
+        Fn::ImportValue:
+          Fn::Sub: ${AWS::StackName}-base-BucketName
+    package:
+      include:
+        - src/handlers/stream/*.py
+    events:
+      - stream:
+          type: kinesis
+          arn:
+            Fn::ImportValue: kinesis2firehose-v1-base-KinesisStreamArn
+            # not work
+            #Fn::ImportValue:
+            #  Fn::Sub: ${AWS::StackName}-base-KinesisStreamArn
+
+resources: ${{file(resources.yml)}}

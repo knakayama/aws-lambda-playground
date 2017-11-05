@@ -1,0 +1,62 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: kinesis2firehose Sample Stack
+
+Parameters:
+  LogGroupRetentionInDays:
+    Type: String
+    Default: ${{self:custom.config.logGroup.retentionInDays}}
+
+Resources:
+  StreamLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: LogGroupRetentionInDays
+
+  FirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays:
+        Ref: LogGroupRetentionInDays
+
+  KinesisFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamType: KinesisStreamAsSource
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN:
+          Fn::ImportValue:
+            Fn::Sub: ${AWS::StackName}-base-KinesisStreamArn
+        RoleARN:
+          Fn::ImportValue:
+            Fn::Sub: ${AWS::StackName}-base-KinesisFirehoseRoleArn
+      ExtendedS3DestinationConfiguration:
+        BucketARN:
+          Fn::ImportValue:
+            Fn::Sub: ${AWS::StackName}-base-BucketArn
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 1
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName:
+            Fn::ImportValue:
+              Fn::Sub: ${AWS::StackName}-base-KinesisFirehoseLogGroupName
+          LogStreamName:
+            Fn::ImportValue:
+              Fn::Sub: ${AWS::StackName}-base-KinesisFirehoseLogStreamName
+        CompressionFormat: UNCOMPRESSED
+        Prefix:
+          Fn::Sub: ${AWS::StackName}/
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Type: Lambda
+              Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue:
+                    Fn::GetAtt: [ FirehoseLambdaFunction, Arn ]
+        RoleARN:
+          Fn::ImportValue:
+            Fn::Sub: ${AWS::StackName}-base-KinesisFirehoseRoleArn

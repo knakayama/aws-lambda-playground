@@ -1,0 +1,10 @@
+{
+  "name": "kinesis2firehose",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "knakayama <knakayama.sh@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "serverless": "^1.24.0"
+  }
+}
