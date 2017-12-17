@@ -1,0 +1,51 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: IoT Rule Other Stack
+
+Resources:
+  DynamoDbTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${AWS::StackName}-table
+      AttributeDefinitions:
+        - AttributeName: deviceId
+          AttributeType: N
+      KeySchema:
+        - AttributeName: deviceId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  IoTTopicRuleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - iot.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: !Sub /${AWS::StackName}/
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-iot-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:*
+                Resource:
+                  - !GetAtt DynamoDbTable.Arn
+
+Outputs:
+  DynamoDbTableArn:
+    Value: !GetAtt DynamoDbTable.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-DynamoDbTableArn
+  IoTTopicRuleRoleArn:
+    Value: !GetAtt IoTTopicRuleRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-IoTTopicRuleRoleArn

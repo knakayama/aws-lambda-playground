@@ -1,0 +1,44 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: IoT Rule Lambda Stack
+
+Parameters:
+  InfraStackName:
+    Type: String
+    Default: iot-rule-infra
+
+# FIXME: not work
+Resources:
+  QueryHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-function
+      CodeUri: src/handlers/query_handler
+      Handler: index.handler
+      Runtime: python3.6
+
+  IoTTopicRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: iot_topic_rule
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: !Sub |
+          SELECT aws_lambda("${QueryHandler.Arn}", state.reported.message).device.id as output FROM 'a/b'
+        Actions:
+          - DynamoDBv2:
+              RoleArn:
+                Fn::ImportValue: !Sub ${InfraStackName}-IoTTopicRuleRoleArn
+              PutItem:
+                TableName:
+                  Fn::ImportValue: !Sub ${InfraStackName}-DynamoDbTableArn
+
+  IoTTopicRuleInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Principal: iot.amazonaws.com
+      SourceArn: !GetAtt IoTTopicRule.Arn
+      SourceAccount: !Ref AWS::AccountId
+      FunctionName: !GetAtt QueryHandler.Arn
+      Action: lambda:InvokeFunction
