@@ -1,0 +1,51 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: DI Python Inject - Infra
+
+Resources:
+  DynamoDbTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${AWS::StackName}-table
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: !Sub /${AWS::StackName}/lambda/
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-lambda-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:*
+                Resource:
+                  - !GetAtt DynamoDbTable.Arn
+
+Outputs:
+  DynamoDbTableName:
+    Value: !Ref DynamoDbTable
+    Export:
+      Name: !Sub ${AWS::StackName}-DynamoDbTableName
+  LambdaRoleArn:
+    Value: !GetAtt LambdaRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaRoleArn

@@ -1,0 +1,23 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: DI Python Inject
+
+Parameters:
+  InfraStackName:
+    Type: String
+    Default: di-python-inject-infra
+
+Resources:
+  Func:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/func
+      Handler: index.handler
+      Runtime: python3.6
+      Role:
+        Fn::ImportValue: !Sub ${InfraStackName}-LambdaRoleArn
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Fn::ImportValue: !Sub ${InfraStackName}-DynamoDbTableName
