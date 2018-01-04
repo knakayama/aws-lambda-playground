@@ -12,3 +12,4 @@ vendored/
 tmp/
 .venv/
 .cache/
+.mypy_cache/

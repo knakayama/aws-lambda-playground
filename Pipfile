@@ -16,3 +16,7 @@ awscli = "*"
 
 ipython = "*"
 inject = "*"
+mypy = "*"
+pyannotate = "*"
+pynamodb = "*"
+pytest-cov = "*"
