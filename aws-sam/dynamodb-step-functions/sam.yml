@@ -1,0 +1,167 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Test
+
+Parameters:
+  RetentionInDays:
+    Type: Number
+    Default: 14
+
+  StateMachineName:
+    Type: String
+    Default: RemindStateMachine
+
+  WaitInSeconds:
+    Type: Number
+    Default: 10
+
+  RemindCount:
+    Type: Number
+    Default: 5
+
+Globals:
+  Function:
+    Runtime: python3.6
+    Timeout: 60
+    MemorySize: 128
+    Environment:
+      Variables:
+        PYTHONPATH: /var/runtime:/var/task/vendored
+
+Resources:
+  DynamoDB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: deviceId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: deviceId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+  InvokeStepFunctions:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/invoke_step_functions
+      Handler: index.handler
+      Policies:
+        - arn:aws:iam::aws:policy/AWSStepFunctionsFullAccess
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${StateMachineName}
+      Events:
+        InvokeStepFunctionsStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt DynamoDB.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 10
+
+  InvokeStepFunctionsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${InvokeStepFunctions}
+      RetentionInDays: !Ref RetentionInDays
+
+  RemindHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/remind_handler
+      Handler: index.handler
+      Policies:
+        - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref DynamoDB
+
+  RemindHandlerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${RemindHandler}
+      RetentionInDays: !Ref RetentionInDays
+
+  Remind:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/remind
+      Handler: index.handler
+
+  RemindLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Remind}
+      RetentionInDays: !Ref RetentionInDays
+
+  InvokeRemindFunctionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+
+  RemindStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Ref StateMachineName
+      RoleArn: !GetAtt InvokeRemindFunctionsRole.Arn
+      DefinitionString: !Sub |-
+        {
+          "Comment": "Remind State Machine",
+          "StartAt": "ConfigureRemindCount",
+          "States": {
+            "ConfigureRemindCount": {
+              "Type": "Pass",
+              "Result": {
+                "count": ${RemindCount},
+                "index": 0,
+                "step": 1
+              },
+              "ResultPath": "$.iterator",
+              "Next": "WaitAMinutes"
+            },
+            "WaitAMinutes": {
+              "Type": "Wait",
+              "Seconds": ${WaitInSeconds},
+              "Next": "RemindIterator"
+            },
+            "RemindIterator": {
+              "Type": "Task",
+              "Resource": "${RemindHandler.Arn}",
+              "ResultPath": "$.iterator",
+              "Next": "IsRemindCountReached"
+            },
+            "IsRemindCountReached": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.iterator.continue",
+                  "BooleanEquals": true,
+                  "Next": "Remind"
+                }
+              ],
+              "Default": "Done"
+            },
+            "Remind": {
+              "Type": "Task",
+              "Resource": "${Remind.Arn}",
+              "Next": "WaitAMinutes"
+            },
+            "Done": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        }

@@ -13,3 +13,4 @@ tmp/
 .venv/
 .cache/
 .mypy_cache/
+packaged.yml
