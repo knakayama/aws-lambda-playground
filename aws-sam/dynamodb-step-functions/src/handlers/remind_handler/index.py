@@ -13,7 +13,7 @@ def handler(event, context):
     result = client.get_item(Key={'deviceId': event['deviceId']})
     print(result)
 
-    if not result['Item']:
+    if not result.get('Item'):
         return {'continue': False}
 
     index = iterator['index']
