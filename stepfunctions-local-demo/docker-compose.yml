@@ -1,0 +1,12 @@
+version: "3.3"
+
+services:
+  localstack:
+    container_name: localstack
+    image: localstack/localstack
+    ports:
+      - "4574:4574"
+    environment:
+      - SERVICES=lambda
+      - DEFAULT_REGION=ap-northeast-1
+      - DOCKER_HOST=unix:///var/run/docker.sock
