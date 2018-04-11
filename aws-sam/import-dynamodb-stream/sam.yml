@@ -1,0 +1,43 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Test2
+
+Parameters:
+  DynamoDBStackNamePrefix:
+    Type: String
+    Default: test1
+
+  RetentionInDays:
+    Type: Number
+    Default: 14
+
+Globals:
+  Function:
+    Runtime: python3.6
+    Timeout: 60
+    MemorySize: 128
+    Environment:
+      Variables:
+        PYTHONPATH: /var/runtime:/var/task/vendored
+
+Resources:
+  TestFunc:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/test_func
+      Handler: index.handler
+      Events:
+        InvokeStepFunctionsStream:
+          Type: DynamoDB
+          Properties:
+            Stream:
+              Fn::ImportValue: !Sub ${DynamoDBStackNamePrefix}-DynamoDBStreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 1
+
+  TestFuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${TestFunc}
+      RetentionInDays: !Ref RetentionInDays
