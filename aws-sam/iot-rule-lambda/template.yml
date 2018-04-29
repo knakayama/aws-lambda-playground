@@ -1,15 +1,15 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: IoT Rule Other Stack
+Description: AWS IoT Rules Engine Infra Stack
 
 Resources:
-  DynamoDbTable:
+  DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub ${AWS::StackName}-table
+      TableName: !Sub dynamodb-table-${AWS::StackName}
       AttributeDefinitions:
         - AttributeName: deviceId
-          AttributeType: N
+          AttributeType: S
       KeySchema:
         - AttributeName: deviceId
           KeyType: HASH
@@ -17,35 +17,50 @@ Resources:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
 
-  IoTTopicRuleRole:
+  WhereFuncRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub WhereFunc-${AWS::StackName}
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Principal:
-              Service:
-                - iot.amazonaws.com
-            Action:
-              - sts:AssumeRole
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       Path: !Sub /${AWS::StackName}/
-      Policies:
-        - PolicyName: !Sub ${AWS::StackName}-iot-role-policy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: dynamodb:*
-                Resource:
-                  - !GetAtt DynamoDbTable.Arn
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
+
+  ActionFuncRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ActionFunc-${AWS::StackName}
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: !Sub /${AWS::StackName}/
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
 
 Outputs:
-  DynamoDbTableArn:
-    Value: !GetAtt DynamoDbTable.Arn
+  DynamoDBTableName:
+    Value: !Ref DynamoDBTable
     Export:
-      Name: !Sub ${AWS::StackName}-DynamoDbTableArn
-  IoTTopicRuleRoleArn:
-    Value: !GetAtt IoTTopicRuleRole.Arn
+      Name: !Sub ${AWS::StackName}-DynamoDBTableName
+
+  WhereFuncRoleArn:
+    Value: !GetAtt WhereFuncRole.Arn
     Export:
-      Name: !Sub ${AWS::StackName}-IoTTopicRuleRoleArn
+      Name: !Sub ${AWS::StackName}-WhereFuncRoleArn
+
+  ActionFuncRoleArn:
+    Value: !GetAtt ActionFuncRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-ActionFuncRoleArn

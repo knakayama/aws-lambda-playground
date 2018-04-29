@@ -1,44 +1,68 @@
 ---
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: IoT Rule Lambda Stack
+Description: AWS IoT Rules Engine Sample Stack
 
 Parameters:
-  InfraStackName:
+  InfraStackNamePrefix:
     Type: String
-    Default: iot-rule-infra
+    Default: infra
 
-# FIXME: not work
+  LambdaLogGroupNamePrefix:
+    Type: String
+    Default: /aws/lambda
+
+Globals:
+  Function:
+    Handler: index.handler
+    Runtime: python3.6
+    AutoPublishAlias: live
+
 Resources:
-  QueryHandler:
+  WhereFunc:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-function
-      CodeUri: src/handlers/query_handler
-      Handler: index.handler
-      Runtime: python3.6
+      FunctionName: !Sub where-func-${AWS::StackName}
+      CodeUri: src/handlers/where_func
+      Role:
+        Fn::ImportValue: !Sub ${InfraStackNamePrefix}-WhereFuncRoleArn
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Fn::ImportValue: !Sub ${InfraStackNamePrefix}-DynamoDBTableName
 
-  IoTTopicRule:
-    Type: AWS::IoT::TopicRule
+  WhereFuncLogGroup:
+    Type: AWS::Logs::LogGroup
     Properties:
-      RuleName: iot_topic_rule
-      TopicRulePayload:
-        RuleDisabled: false
-        Sql: !Sub |
-          SELECT aws_lambda("${QueryHandler.Arn}", state.reported.message).device.id as output FROM 'a/b'
-        Actions:
-          - DynamoDBv2:
-              RoleArn:
-                Fn::ImportValue: !Sub ${InfraStackName}-IoTTopicRuleRoleArn
-              PutItem:
-                TableName:
-                  Fn::ImportValue: !Sub ${InfraStackName}-DynamoDbTableArn
+      LogGroupName: !Sub ${LambdaLogGroupNamePrefix}/${WhereFunc}
 
-  IoTTopicRuleInvokePermission:
+  ActionFunc:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub action-func-${AWS::StackName}
+      CodeUri: src/handlers/action_func
+      Role:
+        Fn::ImportValue: !Sub ${InfraStackNamePrefix}-ActionFuncRoleArn
+      Events:
+        IoTRule:
+          Type: IoTRule
+          Properties:
+            AwsIotSqlVersion: 2016-03-23
+            Sql: !Sub |
+              SELECT *
+              FROM '$aws/things/+/shadow/update'
+              WHERE aws_lambda("${WhereFunc.Alias}", {"deviceId": topic(3)}).isIllegal <> True
+
+  WhereFuncIoTRuleInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
+      FunctionName: !Ref WhereFunc.Alias
       Principal: iot.amazonaws.com
-      SourceArn: !GetAtt IoTTopicRule.Arn
+      SourceArn: !GetAtt ActionFuncIoTRule.Arn
       SourceAccount: !Ref AWS::AccountId
-      FunctionName: !GetAtt QueryHandler.Arn
       Action: lambda:InvokeFunction
+
+  ActionFuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub ${LambdaLogGroupNamePrefix}/${ActionFunc}
