@@ -1,0 +1,52 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: aws-sam-sample
+
+Resources:
+  SQS:
+    Type: AWS::SQS::Queue
+
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: knakayama-test-bucket-sqs
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt SQS.Arn
+
+  SQSPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: SQS:SendMessage
+            Resource: !GetAtt SQS.Arn
+            Condition:
+              ArnEquals:
+                # can't ref Bucket.Arn
+                aws:SourceArn: arn:aws:s3:::knakayama-test-bucket-sqs
+      Queues:
+        - !Ref SQS
+
+  TestFunc:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/test_func
+      Handler: index.handler
+      Runtime: python3.6
+      Events:
+        Consumer:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SQS.Arn
+            BatchSize: 10
+
+  TestFuncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${TestFunc}
