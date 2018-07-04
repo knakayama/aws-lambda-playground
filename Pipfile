@@ -10,6 +10,7 @@ name = "pypi"
 "flake8" = "*"
 pytest = "*"
 awscli = "*"
+aws-sam-cli = "*"
 
 
 [dev-packages]
