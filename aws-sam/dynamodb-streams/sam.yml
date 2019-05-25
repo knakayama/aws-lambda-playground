@@ -1,0 +1,48 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Test
+
+Parameters:
+  RetentionInDays:
+    Type: Number
+    Default: 14
+
+Globals:
+  Function:
+    Runtime: nodejs10.x
+
+Resources:
+  DynamoDB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: deviceId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: deviceId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+  Func1:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers
+      Handler: index.handler
+      Events:
+        InvokeStepFunctionsStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt DynamoDB.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 1
+
+  Func1LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Func1}
+      RetentionInDays: !Ref RetentionInDays
